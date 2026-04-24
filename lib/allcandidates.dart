@@ -422,46 +422,41 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          Column(
                             children: [
-                              Expanded(
-                                child: _ApplicationField(
-                                  label: 'HR Manager',
-                                  child: _ApplicationDropdown(
-                                    value: selectedHrManager,
-                                    hint: 'Select HR Manager',
-                                    items: const [
-                                      'Harini',
-                                      'Meena',
-                                      'Suresh',
-                                    ],
-                                    onChanged: (value) {
-                                      setDialogState(() {
-                                        selectedHrManager = value;
-                                      });
-                                    },
-                                  ),
+                              _ApplicationField(
+                                label: 'HR Manager',
+                                child: _ApplicationDropdown(
+                                  value: selectedHrManager,
+                                  hint: 'Select HR Manager',
+                                  items: const [
+                                    'Harini',
+                                    'Meena',
+                                    'Suresh',
+                                  ],
+                                  onChanged: (value) {
+                                    setDialogState(() {
+                                      selectedHrManager = value;
+                                    });
+                                  },
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _ApplicationField(
-                                  label: 'Assign L1 Interviewer',
-                                  child: _ApplicationDropdown(
-                                    value: selectedInterviewer,
-                                    hint: 'Select Interviewer',
-                                    items: const [
-                                      'Vinoth',
-                                      'Karthik',
-                                      'Priya',
-                                    ],
-                                    onChanged: (value) {
-                                      setDialogState(() {
-                                        selectedInterviewer = value;
-                                      });
-                                    },
-                                  ),
+                              const SizedBox(height: 14),
+                              _ApplicationField(
+                                label: 'Assign L1 Interviewer',
+                                child: _ApplicationDropdown(
+                                  value: selectedInterviewer,
+                                  hint: 'Select Interviewer',
+                                  items: const [
+                                    'Vinoth',
+                                    'Karthik',
+                                    'Priya',
+                                  ],
+                                  onChanged: (value) {
+                                    setDialogState(() {
+                                      selectedInterviewer = value;
+                                    });
+                                  },
                                 ),
                               ),
                             ],

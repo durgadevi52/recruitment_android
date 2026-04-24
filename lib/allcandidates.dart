@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:recruitment/account.dart';
+import 'package:recruitment/dashboard.dart';
 
 class AllCandidatesScreen extends StatefulWidget {
   const AllCandidatesScreen({super.key});
@@ -9,6 +11,7 @@ class AllCandidatesScreen extends StatefulWidget {
 
 class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
   static const Color _primary = Color(0xFF315DE7);
+  static const Color _accent = Color(0xFF5447E8);
   static const Color _pageBackground = Color(0xFFF7F7FA);
   static const Color _textPrimary = Color(0xFF141824);
   static const Color _textSecondary = Color(0xFF6F7484);
@@ -70,36 +73,15 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _pageBackground,
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x2A315DE7),
-              blurRadius: 24,
-              offset: Offset(0, 10),
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: () {},
-          backgroundColor: _primary,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Icon(Icons.add_rounded, size: 34, color: Colors.white),
-        ),
-      ),
-      // bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: _buildBottomNav(),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
-              const SizedBox(height: 36),
+              // _buildHeader(),
+              const SizedBox(height: 12),
               const Text(
                 'Candidates',
                 style: TextStyle(
@@ -108,7 +90,7 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                   color: _textPrimary,
                 ),
               ),
-              // const SizedBox(height: 6),
+              const SizedBox(height: 12),
               // const Text(
               //   'Reviewing potential future team members',
               //   style: TextStyle(
@@ -153,10 +135,14 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                 ],
               ),
               const SizedBox(height: 26),
-              ..._filteredCandidates.map(
-                (candidate) => Padding(
+              ..._filteredCandidates.asMap().entries.map(
+                (entry) => Padding(
                   padding: const EdgeInsets.only(bottom: 22),
-                  child: _CandidateCard(candidate: candidate),
+                  child: _CandidateCard(
+                    candidate: entry.value,
+                    count: entry.key + 1,
+                    onApply: () => _showNewApplicationDialog(entry.value),
+                  ),
                 ),
               ),
               if (_filteredCandidates.isEmpty)
@@ -185,26 +171,79 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
     );
   }
 
-  Widget _buildHeader() {
-    return Row(
-      children: [
-        const Icon(Icons.menu_rounded, color: _primary, size: 28),
-        const SizedBox(width: 14),
-        const Text(
-          'Talent Scout',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: _primary,
+  Widget _buildBottomNav() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 20,
+            offset: Offset(0, -4),
           ),
-        ),
-        const Spacer(),
-        _HeaderIconButton(icon: Icons.search_rounded, onTap: () {}),
-        const SizedBox(width: 10),
-        _HeaderIconButton(icon: Icons.notifications_rounded, onTap: () {}),
-      ],
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _BottomNavItem(
+            icon: Icons.home_filled,
+            label: 'DASHBOARD',
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => const DashboardScreen(),
+                ),
+              );
+            },
+          ),
+          _BottomNavItem(
+            icon: Icons.group_outlined,
+            label: 'ALL CANDIDATES',
+            selected: true,
+          ),
+          _BottomNavItem(
+            icon: Icons.insert_chart_outlined_rounded,
+            label: 'INSIGHTS',
+          ),
+          _BottomNavItem(
+            icon: Icons.person_outline_rounded,
+            label: 'PROFILE',
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => const AccountScreen(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
+
+  // Widget _buildHeader() {
+  //   return Row(
+  //     children: [
+  //       const Icon(Icons.menu_rounded, color: _primary, size: 28),
+  //       const SizedBox(width: 14),
+  //       const Text(
+  //         'Talent Scout',
+  //         style: TextStyle(
+  //           fontSize: 18,
+  //           fontWeight: FontWeight.w700,
+  //           color: _primary,
+  //         ),
+  //       ),
+  //       const Spacer(),
+  //       _HeaderIconButton(icon: Icons.search_rounded, onTap: () {}),
+  //       const SizedBox(width: 10),
+  //       _HeaderIconButton(icon: Icons.notifications_rounded, onTap: () {}),
+  //     ],
+  //   );
+  // }
 
   Widget _buildSearchField() {
     return Container(
@@ -353,6 +392,289 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
     return '$day $month ${date.year}';
   }
 
+  Future<void> _showNewApplicationDialog(_Candidate candidate) async {
+    final notesController = TextEditingController();
+    String? selectedHrManager;
+    String? selectedInterviewer;
+
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.38),
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 24,
+              ),
+              backgroundColor: Colors.transparent,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 500),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 16, 14),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'NEW APPLICATION',
+                                  style: TextStyle(
+                                    color: _accent,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.4,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'New Application — ${candidate.name}',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: _textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () => Navigator.of(dialogContext).pop(),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF3F4F8),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.close_rounded,
+                                size: 18,
+                                color: Color(0xFF8B92A3),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1, color: Color(0xFFE8EAF1)),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF3FF),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: const Color(0xFFC7D4FF),
+                              ),
+                            ),
+                            child: const Text(
+                              'Position and target branch will be set during the pre-screening call.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF6170C9),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: _ApplicationField(
+                                  label: 'HR Manager',
+                                  child: _ApplicationDropdown(
+                                    value: selectedHrManager,
+                                    hint: 'Select HR Manager',
+                                    items: const [
+                                      'Harini',
+                                      'Meena',
+                                      'Suresh',
+                                    ],
+                                    onChanged: (value) {
+                                      setDialogState(() {
+                                        selectedHrManager = value;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _ApplicationField(
+                                  label: 'Assign L1 Interviewer',
+                                  child: _ApplicationDropdown(
+                                    value: selectedInterviewer,
+                                    hint: 'Select Interviewer',
+                                    items: const [
+                                      'Vinoth',
+                                      'Karthik',
+                                      'Priya',
+                                    ],
+                                    onChanged: (value) {
+                                      setDialogState(() {
+                                        selectedInterviewer = value;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          _ApplicationField(
+                            label: 'Remarks / Notes',
+                            child: TextField(
+                              controller: notesController,
+                              maxLines: 2,
+                              decoration: InputDecoration(
+                                hintText: 'Any initial notes...',
+                                hintStyle: const TextStyle(
+                                  color: Color(0xFFA1A8B8),
+                                  fontSize: 13,
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 14,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFD6DBE7),
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFD6DBE7),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(
+                                    color: _accent,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: SizedBox(
+                                  height: 48,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFF5849F0),
+                                          Color(0xFF4A42DA),
+                                        ],
+                                      ),
+                                    ),
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.of(dialogContext).pop();
+                                        ScaffoldMessenger.of(this.context)
+                                          ..hideCurrentSnackBar()
+                                          ..showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Application created for ${candidate.name}',
+                                              ),
+                                            ),
+                                          );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        elevation: 0,
+                                        shadowColor: Colors.transparent,
+                                        backgroundColor: Colors.transparent,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'Create Application',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              SizedBox(
+                                height: 48,
+                                child: OutlinedButton(
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(
+                                      color: Color(0xFFD2D7E3),
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    foregroundColor: const Color(0xFF4C5264),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Cancel',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    notesController.dispose();
+  }
+
   Widget _buildFilterChip({
     required String label,
     required bool selected,
@@ -391,9 +713,15 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
 }
 
 class _CandidateCard extends StatelessWidget {
-  const _CandidateCard({required this.candidate});
+  const _CandidateCard({
+    required this.candidate,
+    required this.count,
+    required this.onApply,
+  });
 
   final _Candidate candidate;
+  final int count;
+  final VoidCallback onApply;
 
   @override
   Widget build(BuildContext context) {
@@ -437,6 +765,25 @@ class _CandidateCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE7EAFF),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Applications : $count',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF35478C),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     Text(
                       candidate.name,
                       style: const TextStyle(
@@ -513,7 +860,7 @@ class _CandidateCard extends StatelessWidget {
               Expanded(
                 child: _ActionButton(
                   label: 'Apply',
-                  onTap: () {},
+                  onTap: onApply,
                   backgroundColor: const Color(0xFF3C63E8),
                   textColor: Colors.white,
                   addShadow: true,
@@ -522,6 +869,152 @@ class _CandidateCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ApplicationField extends StatelessWidget {
+  const _ApplicationField({
+    required this.label,
+    required this.child,
+  });
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF555D6E),
+            letterSpacing: 0.4,
+          ),
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+}
+
+class _ApplicationDropdown extends StatelessWidget {
+  const _ApplicationDropdown({
+    required this.value,
+    required this.hint,
+    required this.items,
+    required this.onChanged,
+  });
+
+  final String? value;
+  final String hint;
+  final List<String> items;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      isExpanded: true,
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFD6DBE7)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFD6DBE7)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: _AllCandidatesScreenState._accent),
+        ),
+      ),
+      icon: const Icon(
+        Icons.keyboard_arrow_down_rounded,
+        color: Color(0xFF6C7385),
+      ),
+      hint: Text(
+        hint,
+        style: const TextStyle(
+          color: Color(0xFF4C5264),
+          fontSize: 13,
+        ),
+      ),
+      items: items
+          .map(
+            (item) => DropdownMenuItem<String>(
+              value: item,
+              child: Text(
+                item,
+                style: const TextStyle(
+                  color: Color(0xFF2D3445),
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: onChanged,
+    );
+  }
+}
+
+class _BottomNavItem extends StatelessWidget {
+  const _BottomNavItem({
+    required this.icon,
+    required this.label,
+    this.selected = false,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF5B4CF0) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: selected ? Colors.white : const Color(0xFF9CA4B6),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: selected ? Colors.white : const Color(0xFF9CA4B6),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

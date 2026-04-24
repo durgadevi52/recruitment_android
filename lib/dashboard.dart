@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:recruitment/account.dart';
 import 'package:recruitment/allcandidates.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -169,7 +170,7 @@ class DashboardScreen extends StatelessWidget {
         const Icon(Icons.menu, color: _primary, size: 20),
         const SizedBox(width: 8),
         const Text(
-          'Fluid HR',
+          'DASHBOARD',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w700,
@@ -417,7 +418,14 @@ class DashboardScreen extends StatelessWidget {
           ),
           _BottomNavItem(
             icon: Icons.person_outline_rounded,
-            label: 'ACCOUNT',
+            label: 'PROFILE',
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => const AccountScreen(),
+                ),
+              );
+            },
           ),
         ],
       ),

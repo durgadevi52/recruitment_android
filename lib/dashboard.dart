@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:recruitment/account.dart';
-import 'package:recruitment/allcandidates.dart';
+import 'package:recruitment/app_shell.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   static const Color _primary = Color(0xFF5B4CF0);
-  static const Color _pageBackground = Color(0xFFF6F7FB);
   static const Color _darkCard = Color(0xFF2E313D);
 
   String _greetingForHour(int hour) {
@@ -23,178 +21,111 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final greeting = _greetingForHour(DateTime.now().hour);
 
-    return Scaffold(
-      backgroundColor: _pageBackground,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildTopBar(),
-                    const SizedBox(height: 24),
-                    Text(
-                      '$greeting, Super',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF252B37),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Tuesday, October 24, 2023',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF8C93A3),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1.28,
-                      children: const [
-                        _StatCard(
-                          icon: Icons.assignment_turned_in_outlined,
-                          iconBg: Color(0xFFF1EEFF),
-                          iconColor: _primary,
-                          value: '2',
-                          label: 'JOINING\nPENDING',
-                        ),
-                        _StatCard(
-                          icon: Icons.groups_2_outlined,
-                          iconBg: Color(0xFFF8ECFF),
-                          iconColor: Color(0xFFD055F5),
-                          value: '12',
-                          label: 'ON\nHOLD',
-                        ),
-                        _StatCard(
-                          icon: Icons.person_add_alt_1_outlined,
-                          iconBg: Color(0xFFEAF8F4),
-                          iconColor: Color(0xFF48A987),
-                          value: '0',
-                          label: 'JOINED THIS\nMONTH',
-                        ),
-                        _StatCard(
-                          icon: Icons.notifications_active_outlined,
-                          iconBg: Color(0xFFFFEFF2),
-                          iconColor: Color(0xFFE45B72),
-                          value: '0',
-                          label: 'SALARY\n FINALAIZED',
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    _buildOverviewCard(),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Recruitment Funnel',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF252B37),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    const _FunnelCard(
-                      level: 'Level 1',
-                      badge: 'AWAITING 8',
-                      progress: 0.15,
-                    ),
-                    const SizedBox(height: 12),
-                    const _FunnelCard(
-                      level: 'Level 2',
-                      badge: 'AWAITING 2',
-                      progress: 0.05,
-                    ),
-                    const SizedBox(height: 12),
-                    const _FunnelCard(
-                      level: 'Level 3',
-                      badge: 'AWAITING 1',
-                      progress: 0.08,
-                    ),
-                    const SizedBox(height: 12),
-                    const _FunnelCard(
-                      level: 'Offer Release',
-                      badge: 'FINALIZED 3',
-                      progress: 0.18,
-                    ),
-                    // const SizedBox(height: 12),
-                    // const _FunnelCard(
-                    //   level: 'On Hold',
-                    //   badge: 'ON HOLD 4',
-                    //   progress: 0.07,
-                    // ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: const [
-                        Expanded(
-                          child: Text(
-                            'Designation Strength',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF252B37),
-                            ),
-                          ),
-                        ),
-                        Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: Color(0xFF81889B),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    _buildTableCard(),
-                  ],
+    return AppPageLayout(
+      selectedTab: AppTab.dashboard,
+      sectionLabel: 'Dashboard',
+      title: '$greeting, Super',
+      subtitle: 'Tuesday, October 24, 2023',
+      titleTrailing: const AppTopAction(icon: Icons.dashboard_customize_rounded),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.28,
+            children: const [
+              _StatCard(
+                icon: Icons.assignment_turned_in_outlined,
+                iconBg: Color(0xFFF1EEFF),
+                iconColor: _primary,
+                value: '2',
+                label: 'JOINING\nPENDING',
+              ),
+              _StatCard(
+                icon: Icons.groups_2_outlined,
+                iconBg: Color(0xFFF8ECFF),
+                iconColor: Color(0xFFD055F5),
+                value: '12',
+                label: 'ON\nHOLD',
+              ),
+              _StatCard(
+                icon: Icons.person_add_alt_1_outlined,
+                iconBg: Color(0xFFEAF8F4),
+                iconColor: Color(0xFF48A987),
+                value: '0',
+                label: 'JOINED THIS\nMONTH',
+              ),
+              _StatCard(
+                icon: Icons.notifications_active_outlined,
+                iconBg: Color(0xFFFFEFF2),
+                iconColor: Color(0xFFE45B72),
+                value: '0',
+                label: 'SALARY\n FINALAIZED',
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _buildOverviewCard(),
+          const SizedBox(height: 24),
+          const Text(
+            'Recruitment Funnel',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF252B37),
+            ),
+          ),
+          const SizedBox(height: 14),
+          const _FunnelCard(
+            level: 'Level 1',
+            badge: 'AWAITING 8',
+            progress: 0.15,
+          ),
+          const SizedBox(height: 12),
+          const _FunnelCard(
+            level: 'Level 2',
+            badge: 'AWAITING 2',
+            progress: 0.05,
+          ),
+          const SizedBox(height: 12),
+          const _FunnelCard(
+            level: 'Level 3',
+            badge: 'AWAITING 1',
+            progress: 0.08,
+          ),
+          const SizedBox(height: 12),
+          const _FunnelCard(
+            level: 'Offer Release',
+            badge: 'FINALIZED 3',
+            progress: 0.18,
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: const [
+              Expanded(
+                child: Text(
+                  'Designation Strength',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF252B37),
+                  ),
                 ),
               ),
-            ),
-            _buildBottomNav(context),
-          ],
-        ),
+              Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Color(0xFF81889B),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _buildTableCard(),
+        ],
       ),
-    );
-  }
-
-  Widget _buildTopBar() {
-    return Row(
-      children: [
-        const Icon(Icons.menu, color: _primary, size: 20),
-        const SizedBox(width: 8),
-        const Text(
-          'DASHBOARD',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: _primary,
-          ),
-        ),
-        const Spacer(),
-        Container(
-          width: 30,
-          height: 30,
-          decoration: const BoxDecoration(
-            color: Color(0xFF272A35),
-            shape: BoxShape.circle,
-          ),
-          alignment: Alignment.center,
-          child: const Text(
-            'S',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -374,59 +305,6 @@ class DashboardScreen extends StatelessWidget {
                 ],
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNav(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x12000000),
-            blurRadius: 20,
-            offset: Offset(0, -4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _BottomNavItem(
-            icon: Icons.home_filled,
-            label: 'DASHBOARD',
-            selected: true,
-          ),
-          _BottomNavItem(
-            icon: Icons.group_outlined,
-            label: 'ALL CANDIDATES',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (context) => const AllCandidatesScreen(),
-                ),
-              );
-            },
-          ),
-          _BottomNavItem(
-            icon: Icons.insert_chart_outlined_rounded,
-            label: 'INSIGHTS',
-          ),
-          _BottomNavItem(
-            icon: Icons.person_outline_rounded,
-            label: 'PROFILE',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (context) => const AccountScreen(),
-                ),
-              );
-            },
-          ),
         ],
       ),
     );
@@ -625,54 +503,6 @@ class _OverviewItem extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _BottomNavItem extends StatelessWidget {
-  _BottomNavItem({
-    required this.icon,
-    required this.label,
-    this.selected = false,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? DashboardScreen._primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: selected ? Colors.white : const Color(0xFF9CA4B6),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: selected ? Colors.white : const Color(0xFF9CA4B6),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:recruitment/allcandidates.dart';
-import 'package:recruitment/dashboard.dart';
+import 'package:recruitment/app_shell.dart';
 
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});
 
   static const Color _primary = Color(0xFF4C63F1);
-  static const Color _pageBackground = Color(0xFFF4F7FC);
   static const Color _textPrimary = Color(0xFF111827);
   static const Color _textSecondary = Color(0xFF6B7280);
 
@@ -93,94 +91,59 @@ class AccountScreen extends StatelessWidget {
       ),
     ];
 
-    return Scaffold(
-      backgroundColor: _pageBackground,
-      bottomNavigationBar: _buildBottomNav(context),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Text(
-                    'Account',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      color: _textPrimary,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x12000000),
-                          blurRadius: 16,
-                          offset: Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.person_outline_rounded,
-                      color: _primary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _buildProfileCard(),
-              const SizedBox(height: 26),
-              const Text(
-                'MY PERFORMANCE',
-                style: TextStyle(
-                  fontSize: 12,
-                  letterSpacing: 2,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF7B8498),
-                ),
-              ),
-              const SizedBox(height: 14),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: performanceItems.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 1.36,
-                ),
-                itemBuilder: (context, index) {
-                  return _PerformanceCard(item: performanceItems[index]);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildClosureCard(),
-              const SizedBox(height: 26),
-              const Text(
-                'HR STAFF PERFORMANCE OVERVIEW',
-                style: TextStyle(
-                  fontSize: 12,
-                  letterSpacing: 1.8,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF7B8498),
-                ),
-              ),
-              const SizedBox(height: 14),
-              ...hrStaff.map((item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: _HrStaffCard(item: item),
-                  )),
-            ],
+    return AppPageLayout(
+      selectedTab: AppTab.profile,
+      sectionLabel: 'Profile',
+      title: 'Profile',
+      subtitle: 'Manage admin details and team performance in one place.',
+      titleTrailing: const AppTopAction(icon: Icons.person_outline_rounded),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildProfileCard(),
+          const SizedBox(height: 26),
+          const Text(
+            'MY PERFORMANCE',
+            style: TextStyle(
+              fontSize: 12,
+              letterSpacing: 2,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF7B8498),
+            ),
           ),
-        ),
+          const SizedBox(height: 14),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: performanceItems.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.36,
+            ),
+            itemBuilder: (context, index) {
+              return _PerformanceCard(item: performanceItems[index]);
+            },
+          ),
+          const SizedBox(height: 12),
+          _buildClosureCard(),
+          const SizedBox(height: 26),
+          const Text(
+            'HR STAFF PERFORMANCE OVERVIEW',
+            style: TextStyle(
+              fontSize: 12,
+              letterSpacing: 1.8,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF7B8498),
+            ),
+          ),
+          const SizedBox(height: 14),
+          ...hrStaff.map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: _HrStaffCard(item: item),
+              )),
+        ],
       ),
     );
   }
@@ -337,59 +300,6 @@ class AccountScreen extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNav(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x12000000),
-            blurRadius: 20,
-            offset: Offset(0, -4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _BottomNavItem(
-            icon: Icons.home_filled,
-            label: 'DASHBOARD',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (context) => const DashboardScreen(),
-                ),
-              );
-            },
-          ),
-          _BottomNavItem(
-            icon: Icons.group_outlined,
-            label: 'ALL CANDIDATES',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (context) => const AllCandidatesScreen(),
-                ),
-              );
-            },
-          ),
-          const _BottomNavItem(
-            icon: Icons.insert_chart_outlined_rounded,
-            label: 'INSIGHTS',
-          ),
-          const _BottomNavItem(
-            icon: Icons.person_outline_rounded,
-            label: 'PROFILE',
-            selected: true,
           ),
         ],
       ),
@@ -674,54 +584,6 @@ class _MiniMetric extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _BottomNavItem extends StatelessWidget {
-  const _BottomNavItem({
-    required this.icon,
-    required this.label,
-    this.selected = false,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? AccountScreen._primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: selected ? Colors.white : const Color(0xFF9CA4B6),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: selected ? Colors.white : const Color(0xFF9CA4B6),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:recruitment/account.dart';
-import 'package:recruitment/dashboard.dart';
+import 'package:recruitment/app_shell.dart';
 
 class AllCandidatesScreen extends StatefulWidget {
   const AllCandidatesScreen({super.key});
@@ -12,7 +11,6 @@ class AllCandidatesScreen extends StatefulWidget {
 class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
   static const Color _primary = Color(0xFF315DE7);
   static const Color _accent = Color(0xFF5447E8);
-  static const Color _pageBackground = Color(0xFFF7F7FA);
   static const Color _textPrimary = Color(0xFF141824);
   static const Color _textSecondary = Color(0xFF6F7484);
   static const Color _chipBackground = Color(0xFFE8E9ED);
@@ -71,154 +69,79 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _pageBackground,
-      bottomNavigationBar: _buildBottomNav(),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return AppPageLayout(
+      selectedTab: AppTab.candidates,
+      sectionLabel: 'All Candidates',
+      title: 'Candidates',
+      subtitle: 'Review and apply filters for the current candidate pool.',
+      titleTrailing: const AppTopAction(icon: Icons.group_outlined),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSearchField(),
+          const SizedBox(height: 32),
+          _buildSectionLabel('DATE FILTER'),
+          const SizedBox(height: 14),
+          _buildDatePickerField(),
+          const SizedBox(height: 30),
+          _buildSectionLabel('Experience'),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
             children: [
-              // _buildHeader(),
-              const SizedBox(height: 12),
-              const Text(
-                'Candidates',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: _textPrimary,
-                ),
+              _buildFilterChip(
+                label: 'All',
+                selected: _selectedExperience == 'All',
+                onTap: () => setState(() => _selectedExperience = 'All'),
               ),
-              const SizedBox(height: 12),
-              // const Text(
-              //   'Reviewing potential future team members',
-              //   style: TextStyle(
-              //     fontSize: 15,
-              //     color: _textSecondary,
-              //   ),
-              // ),
-              // const SizedBox(height: 24),
-              _buildSearchField(),
-              const SizedBox(height: 32),
-              _buildSectionLabel('DATE FILTER'),
-              const SizedBox(height: 14),
-              _buildDatePickerField(),
-              const SizedBox(height: 30),
-              _buildSectionLabel('Experience'),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _buildFilterChip(
-                    label: 'All',
-                    selected: _selectedExperience == 'All',
-                    onTap: () => setState(() => _selectedExperience = 'All'),
-                  ),
-                  _buildFilterChip(
-                    label: 'Fresher',
-                    selected: _selectedExperience == 'Fresher',
-                    onTap: () => setState(() => _selectedExperience = 'Fresher'),
-                  ),
-                  _buildFilterChip(
-                    label: '1-3\nYears',
-                    selected: _selectedExperience == '1-3 Years',
-                    onTap: () =>
-                        setState(() => _selectedExperience = '1-3 Years'),
-                  ),
-                  _buildFilterChip(
-                    label: '3+\nYears',
-                    selected: _selectedExperience == '3+ Years',
-                    onTap: () => setState(() => _selectedExperience = '3+ Years'),
-                  ),
-                ],
+              _buildFilterChip(
+                label: 'Fresher',
+                selected: _selectedExperience == 'Fresher',
+                onTap: () => setState(() => _selectedExperience = 'Fresher'),
               ),
-              const SizedBox(height: 26),
-              ..._filteredCandidates.asMap().entries.map(
-                (entry) => Padding(
-                  padding: const EdgeInsets.only(bottom: 22),
-                  child: _CandidateCard(
-                    candidate: entry.value,
-                    count: entry.key + 1,
-                    onApply: () => _showNewApplicationDialog(entry.value),
-                  ),
-                ),
+              _buildFilterChip(
+                label: '1-3\nYears',
+                selected: _selectedExperience == '1-3 Years',
+                onTap: () => setState(() => _selectedExperience = '1-3 Years'),
               ),
-              if (_filteredCandidates.isEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'No candidates found for this filter.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: _textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 12),
+              _buildFilterChip(
+                label: '3+\nYears',
+                selected: _selectedExperience == '3+ Years',
+                onTap: () => setState(() => _selectedExperience = '3+ Years'),
+              ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x12000000),
-            blurRadius: 20,
-            offset: Offset(0, -4),
+          const SizedBox(height: 26),
+          ..._filteredCandidates.asMap().entries.map(
+            (entry) => Padding(
+              padding: const EdgeInsets.only(bottom: 22),
+              child: _CandidateCard(
+                candidate: entry.value,
+                count: entry.key + 1,
+                onApply: () => _showNewApplicationDialog(entry.value),
+              ),
+            ),
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _BottomNavItem(
-            icon: Icons.home_filled,
-            label: 'DASHBOARD',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (context) => const DashboardScreen(),
+          if (_filteredCandidates.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'No candidates found for this filter.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: _textSecondary,
+                  fontWeight: FontWeight.w500,
                 ),
-              );
-            },
-          ),
-          _BottomNavItem(
-            icon: Icons.group_outlined,
-            label: 'ALL CANDIDATES',
-            selected: true,
-          ),
-          _BottomNavItem(
-            icon: Icons.insert_chart_outlined_rounded,
-            label: 'INSIGHTS',
-          ),
-          _BottomNavItem(
-            icon: Icons.person_outline_rounded,
-            label: 'PROFILE',
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (context) => const AccountScreen(),
-                ),
-              );
-            },
-          ),
+              ),
+            ),
+          const SizedBox(height: 12),
         ],
       ),
     );
@@ -968,54 +891,6 @@ class _ApplicationDropdown extends StatelessWidget {
           )
           .toList(),
       onChanged: onChanged,
-    );
-  }
-}
-
-class _BottomNavItem extends StatelessWidget {
-  const _BottomNavItem({
-    required this.icon,
-    required this.label,
-    this.selected = false,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFF5B4CF0) : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: selected ? Colors.white : const Color(0xFF9CA4B6),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: selected ? Colors.white : const Color(0xFF9CA4B6),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

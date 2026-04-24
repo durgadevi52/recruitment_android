@@ -22,9 +22,32 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
     _Candidate(
       name: 'Durgadevi',
       email: 'durgadevi@example.com',
+      phone: '8778828145',
       gender: 'Female',
+      dob: '10 May 1997',
+      age: '28 years',
+      maritalStatus: 'Single',
+      caste: 'MBC',
+      aadhaarSuffix: '2780',
+      address: '175, Kaveri Street, Jeeyapuram, Trichy, Tamil Nadu - 620101',
       experience: 'Fresher',
       degree: 'UG-BSc',
+      postAppliedFor: 'BRO',
+      expectedSalary: '₹ 15,000',
+      joinTiming: 'Immediate',
+      systemKnowledge: '-',
+      l1Status: 'Not Completed',
+      qualificationYear: '2019',
+      percentageOrCgpa: '--',
+      twoWheeler: 'Own & Drive',
+      fourWheeler: 'None',
+      relocation: 'No',
+      preferredBranches: 'Tamil Nadu',
+      preferredAreas: 'Suso, Andimadam, Ariyalur',
+      languagesKnown: ['Tamil', 'English'],
+      source: 'Website',
+      appliedOn: '20 Apr 2026',
+      applicationCount: '1',
       date: '09 APR 2026',
       avatarText: 'D',
       avatarColor: Color(0xFFB5C0FF),
@@ -32,9 +55,32 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
     _Candidate(
       name: 'Rajesh Kumar',
       email: 'rajesh.k@workmail.com',
+      phone: '9345678123',
       gender: 'Male',
+      dob: '03 Jan 1998',
+      age: '27 years',
+      maritalStatus: 'Single',
+      caste: 'BC',
+      aadhaarSuffix: '9134',
+      address: '22, VOC Nagar, Salem, Tamil Nadu - 636007',
       experience: '2 Years Exp',
       degree: 'UG-BTech',
+      postAppliedFor: 'ABM',
+      expectedSalary: '₹ 28,000',
+      joinTiming: '30 Days',
+      systemKnowledge: 'MS Office',
+      l1Status: 'Completed',
+      qualificationYear: '2020',
+      percentageOrCgpa: '78%',
+      twoWheeler: 'Own & Drive',
+      fourWheeler: 'Own',
+      relocation: 'Yes',
+      preferredBranches: 'Salem, Erode',
+      preferredAreas: 'Attur, Sankagiri',
+      languagesKnown: ['Tamil', 'English'],
+      source: 'Referral',
+      appliedOn: '18 Apr 2026',
+      applicationCount: '2',
       date: '08 APR 2026',
       avatarText: 'R',
       avatarColor: Color(0xFFD7DEFF),
@@ -42,9 +88,32 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
     _Candidate(
       name: 'Anjali Sharma',
       email: 'anjali.sh@email.com',
+      phone: '8123456721',
       gender: 'Female',
+      dob: '14 Aug 2000',
+      age: '25 years',
+      maritalStatus: 'Single',
+      caste: 'OC',
+      aadhaarSuffix: '5521',
+      address: '8, Temple Road, Coimbatore, Tamil Nadu - 641001',
       experience: 'Fresher',
       degree: 'PG-MBA',
+      postAppliedFor: 'BA',
+      expectedSalary: '₹ 20,000',
+      joinTiming: 'Immediate',
+      systemKnowledge: 'Tally',
+      l1Status: 'Pending',
+      qualificationYear: '2023',
+      percentageOrCgpa: '8.1 CGPA',
+      twoWheeler: 'None',
+      fourWheeler: 'None',
+      relocation: 'Yes',
+      preferredBranches: 'Coimbatore',
+      preferredAreas: 'Peelamedu, Gandhipuram',
+      languagesKnown: ['Hindi', 'English', 'Tamil'],
+      source: 'Website',
+      appliedOn: '16 Apr 2026',
+      applicationCount: '1',
       date: '07 APR 2026',
       avatarText: 'A',
       avatarColor: Color(0xFFFFB27D),
@@ -119,6 +188,7 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
               child: _CandidateCard(
                 candidate: entry.value,
                 count: entry.key + 1,
+                onView: () => _openCandidateDetails(entry.value),
                 onApply: () => _showNewApplicationDialog(entry.value),
               ),
             ),
@@ -313,6 +383,14 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
     final month = months[date.month - 1];
 
     return '$day $month ${date.year}';
+  }
+
+  void _openCandidateDetails(_Candidate candidate) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _CandidateDetailScreen(candidate: candidate),
+      ),
+    );
   }
 
   Future<void> _showNewApplicationDialog(_Candidate candidate) async {
@@ -634,11 +712,13 @@ class _CandidateCard extends StatelessWidget {
   const _CandidateCard({
     required this.candidate,
     required this.count,
+    required this.onView,
     required this.onApply,
   });
 
   final _Candidate candidate;
   final int count;
+  final VoidCallback onView;
   final VoidCallback onApply;
 
   @override
@@ -769,7 +849,7 @@ class _CandidateCard extends StatelessWidget {
               Expanded(
                 child: _ActionButton(
                   label: 'View',
-                  onTap: () {},
+                  onTap: onView,
                   backgroundColor: const Color(0xFFE8E9ED),
                   textColor: const Color(0xFF1D4FE2),
                 ),
@@ -787,6 +867,733 @@ class _CandidateCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CandidateDetailScreen extends StatelessWidget {
+  const _CandidateDetailScreen({required this.candidate});
+
+  final _Candidate candidate;
+
+  static const Color _textPrimary = Color(0xFF141824);
+  static const Color _textSecondary = Color(0xFF6F7484);
+
+  @override
+  Widget build(BuildContext context) {
+    return AppPageLayout(
+      selectedTab: AppTab.candidates,
+      sectionLabel: 'Candidate View',
+      title: candidate.name,
+      subtitle: '${candidate.postAppliedFor} candidate profile and documents.',
+      titleTrailing: const AppTopAction(icon: Icons.badge_outlined),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _DetailSectionCard(
+            title: 'Photo',
+            child: Center(
+              child: Container(
+                width: 108,
+                height: 108,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x12000000),
+                      blurRadius: 14,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.qr_code_2_rounded,
+                          size: 54,
+                          color: Color(0xFF3DBB57),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          candidate.name,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF6F7484),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          _DetailSectionCard(
+            title: 'Personal',
+            child: Column(
+              children: [
+                _InfoRow(label: 'Phone', value: candidate.phone),
+                _InfoRow(label: 'Email', value: candidate.email),
+                _InfoRow(label: 'DOB', value: candidate.dob),
+                _InfoRow(label: 'Age', value: candidate.age),
+                _InfoRow(label: 'Gender', value: candidate.gender),
+                _InfoRow(label: 'Marital', value: candidate.maritalStatus),
+                _InfoRow(label: 'Caste', value: candidate.caste),
+                _InfoRow(label: 'Aadhaar', value: '****${candidate.aadhaarSuffix}'),
+                _InfoRow(label: 'Address', value: candidate.address, isLast: true),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          _DetailSectionCard(
+            title: 'Education & Career',
+            child: Column(
+              children: [
+                _InfoRow(label: 'Qualification', value: candidate.degree),
+                _InfoRow(label: 'Year', value: candidate.qualificationYear),
+                _InfoRow(
+                  label: '% / CGPA',
+                  value: candidate.percentageOrCgpa,
+                ),
+                _InfoRow(
+                  label: 'Post Applied For',
+                  value: candidate.postAppliedFor,
+                ),
+                _InfoRow(label: 'Experience', value: candidate.experience),
+                _InfoRow(
+                  label: 'Expected Salary',
+                  value: candidate.expectedSalary,
+                ),
+                _InfoRow(label: 'Join Timing', value: candidate.joinTiming),
+                _InfoRow(
+                  label: 'System Knowledge',
+                  value: candidate.systemKnowledge,
+                ),
+                _InfoRow(label: 'L1 Status', value: candidate.l1Status, isLast: true),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          _DetailSectionCard(
+            title: 'Mobility & Attributes',
+            child: Column(
+              children: [
+                _TagInfoRow(label: '2-Wheeler', value: candidate.twoWheeler),
+                _TagInfoRow(label: '4-Wheeler', value: candidate.fourWheeler),
+                _TagInfoRow(label: 'Relocation', value: candidate.relocation, isLast: true),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          _DetailSectionCard(
+            title: 'Preferred Branches',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  candidate.preferredBranches,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: _textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: candidate.preferredAreas
+                      .split(', ')
+                      .map(
+                        (area) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF2EEFF),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            area,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF6A4CF3),
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          _DetailSectionCard(
+            title: 'Languages Known',
+            child: Column(
+              children: candidate.languagesKnown
+                  .asMap()
+                  .entries
+                  .map(
+                    (entry) => _TagInfoRow(
+                      label: entry.value,
+                      value: 'Known',
+                      isLast: entry.key == candidate.languagesKnown.length - 1,
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+          const SizedBox(height: 14),
+          _DetailSectionCard(
+            title: 'Source & Referral',
+            child: _TagInfoRow(
+              label: 'Referred Via',
+              value: candidate.source,
+              isLast: true,
+              highlightColor: const Color(0xFF6A4CF3),
+            ),
+          ),
+          const SizedBox(height: 14),
+          _DetailSectionCard(
+            title: 'Record Info',
+            child: Column(
+              children: [
+                _InfoRow(label: 'Applied On', value: candidate.appliedOn),
+                _InfoRow(
+                  label: 'Applications',
+                  value: candidate.applicationCount,
+                  isLast: true,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          _DetailSectionCard(
+            title: 'Documents',
+            trailing: const Text(
+              '5 submitted',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF6A4CF3),
+              ),
+            ),
+            child: Column(
+              children: [
+                _DocumentTile(
+                  title: 'Resume.pdf',
+                  subtitle: 'Click to view / download',
+                  icon: Icons.description_outlined,
+                  statusText: 'Required',
+                  statusColor: Color(0xFFE85D75),
+                  onTap: () => _showDummyDocument(
+                    context,
+                    title: 'Resume.pdf',
+                    fileType: 'PDF Document',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _DocumentTile(
+                  title: 'Bank Book Front Page',
+                  subtitle: 'Dummy QR code.jpg',
+                  icon: Icons.image_outlined,
+                  statusText: 'Approved',
+                  statusColor: Color(0xFF19A466),
+                  onTap: () => _showDummyDocument(
+                    context,
+                    title: 'Bank Book Front Page',
+                    fileType: 'JPG Image',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _DocumentTile(
+                  title: 'Aadhar Card',
+                  subtitle: 'Dummy QR code.jpg',
+                  icon: Icons.badge_outlined,
+                  statusText: 'Approved',
+                  statusColor: Color(0xFF19A466),
+                  onTap: () => _showDummyDocument(
+                    context,
+                    title: 'Aadhar Card',
+                    fileType: 'JPG Image',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _DocumentTile(
+                  title: 'PAN Card',
+                  subtitle: 'Dummy QR code.jpg',
+                  icon: Icons.credit_card_outlined,
+                  statusText: 'Approved',
+                  statusColor: Color(0xFF19A466),
+                  onTap: () => _showDummyDocument(
+                    context,
+                    title: 'PAN Card',
+                    fileType: 'JPG Image',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _DocumentTile(
+                  title: 'Voter ID',
+                  subtitle: 'Dummy QR code.jpg',
+                  icon: Icons.how_to_vote_outlined,
+                  statusText: 'Approved',
+                  statusColor: Color(0xFF19A466),
+                  onTap: () => _showDummyDocument(
+                    context,
+                    title: 'Voter ID',
+                    fileType: 'JPG Image',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showDummyDocument(
+    BuildContext context, {
+    required String title,
+    required String fileType,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.42),
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Document Preview',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: _textPrimary,
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => Navigator.of(dialogContext).pop(),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F4F8),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: Color(0xFF7F8798),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFF),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFE3E8F4)),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 82,
+                        height: 82,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF3FF),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Icon(
+                          Icons.insert_drive_file_rounded,
+                          size: 40,
+                          color: _AllCandidatesScreenState._accent,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: _textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '$fileType • Dummy document preview',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: _textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE6EAF3)),
+                        ),
+                        child: Column(
+                          children: [
+                            const Icon(
+                              Icons.description_outlined,
+                              size: 44,
+                              color: Color(0xFF9AA3B7),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'This is a dummy document.',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: _textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'You can replace this with real API document preview later.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: _textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _AllCandidatesScreenState._accent,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      'Close Preview',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _DetailSectionCard extends StatelessWidget {
+  const _DetailSectionCard({
+    required this.title,
+    required this.child,
+    this.trailing,
+  });
+
+  final String title;
+  final Widget child;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x10000000),
+            blurRadius: 14,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF3C4255),
+                  ),
+                ),
+              ),
+              if (trailing != null) trailing!,
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.label,
+    required this.value,
+    this.isLast = false,
+  });
+
+  final String label;
+  final String value;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        border: isLast
+            ? null
+            : const Border(
+                bottom: BorderSide(color: Color(0xFFF0F2F7)),
+              ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 4,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF8A91A4),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 6,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF232938),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TagInfoRow extends StatelessWidget {
+  const _TagInfoRow({
+    required this.label,
+    required this.value,
+    this.isLast = false,
+    this.highlightColor = const Color(0xFF19A466),
+  });
+
+  final String label;
+  final String value;
+  final bool isLast;
+  final Color highlightColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        border: isLast
+            ? null
+            : const Border(
+                bottom: BorderSide(color: Color(0xFFF0F2F7)),
+              ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF232938),
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: highlightColor.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: highlightColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DocumentTile extends StatelessWidget {
+  const _DocumentTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.statusText,
+    required this.statusColor,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final String statusText;
+  final Color statusColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF9FAFD),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFEBEEF5)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: const Color(0xFF6B7386), size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF232938),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF8A91A4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    statusText,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: statusColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Icon(
+                  Icons.open_in_new_rounded,
+                  size: 16,
+                  color: Color(0xFF8A91A4),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1001,9 +1808,32 @@ class _Candidate {
   const _Candidate({
     required this.name,
     required this.email,
+    required this.phone,
     required this.gender,
+    required this.dob,
+    required this.age,
+    required this.maritalStatus,
+    required this.caste,
+    required this.aadhaarSuffix,
+    required this.address,
     required this.experience,
     required this.degree,
+    required this.postAppliedFor,
+    required this.expectedSalary,
+    required this.joinTiming,
+    required this.systemKnowledge,
+    required this.l1Status,
+    required this.qualificationYear,
+    required this.percentageOrCgpa,
+    required this.twoWheeler,
+    required this.fourWheeler,
+    required this.relocation,
+    required this.preferredBranches,
+    required this.preferredAreas,
+    required this.languagesKnown,
+    required this.source,
+    required this.appliedOn,
+    required this.applicationCount,
     required this.date,
     required this.avatarText,
     required this.avatarColor,
@@ -1011,9 +1841,32 @@ class _Candidate {
 
   final String name;
   final String email;
+  final String phone;
   final String gender;
+  final String dob;
+  final String age;
+  final String maritalStatus;
+  final String caste;
+  final String aadhaarSuffix;
+  final String address;
   final String experience;
   final String degree;
+  final String postAppliedFor;
+  final String expectedSalary;
+  final String joinTiming;
+  final String systemKnowledge;
+  final String l1Status;
+  final String qualificationYear;
+  final String percentageOrCgpa;
+  final String twoWheeler;
+  final String fourWheeler;
+  final String relocation;
+  final String preferredBranches;
+  final String preferredAreas;
+  final List<String> languagesKnown;
+  final String source;
+  final String appliedOn;
+  final String applicationCount;
   final String date;
   final String avatarText;
   final Color avatarColor;

@@ -6,22 +6,47 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConfig {
+  static const _productionHost = 'https://hr.patgroup.org';
+
   static String get baseUrl {
+    return candidateBaseUrls.first;
+  }
+
+  static List<String> get candidateBaseUrls {
     const override = String.fromEnvironment('API_BASE_URL');
     if (override.isNotEmpty) {
-      return override;
+      return [_normalizeBaseUrl(override)];
     }
 
     if (kIsWeb) {
-      return 'http://localhost/api';
+      return const [
+        'https://hr.patgroup.org/api',
+        'https://hr.patgroup.org',
+        'http://localhost/api',
+        'http://localhost',
+      ];
     }
 
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return 'http://10.0.2.2/api';
+        return const [
+          'https://hr.patgroup.org/api',
+          'https://hr.patgroup.org',
+          'http://10.0.2.2/api',
+          'http://10.0.2.2',
+        ];
       default:
-        return 'http://localhost/api';
+        return const [
+          'https://hr.patgroup.org/api',
+          'https://hr.patgroup.org',
+          'http://localhost/api',
+          'http://localhost',
+        ];
     }
+  }
+
+  static String _normalizeBaseUrl(String value) {
+    return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
   }
 }
 
@@ -34,6 +59,32 @@ class ApiException implements Exception {
 
   @override
   String toString() => message;
+}
+
+int _readInt(dynamic value, {int fallback = 0}) {
+  if (value is num) {
+    return value.toInt();
+  }
+  if (value is String) {
+    return int.tryParse(value.trim()) ?? fallback;
+  }
+  return fallback;
+}
+
+Map<String, dynamic> _readMap(dynamic value) {
+  if (value is Map) {
+    return value.cast<String, dynamic>();
+  }
+  return <String, dynamic>{};
+}
+
+dynamic _readFirst(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    if (json.containsKey(key) && json[key] != null) {
+      return json[key];
+    }
+  }
+  return null;
 }
 
 class SessionUser {
@@ -114,14 +165,20 @@ class DashboardData {
   final List<ApplicationSummary> recentApplications;
 
   factory DashboardData.fromJson(Map<String, dynamic> json) {
+    final payload = _readMap(json['data']).isNotEmpty ? _readMap(json['data']) : json;
+    final statsJson = _readMap(
+      _readFirst(payload, const ['stats', 'dashboard_stats', 'counts']) ?? payload,
+    );
+    final manpowerJson = _readMap(
+      _readFirst(payload, const ['manpower', 'manpower_data', 'overview']),
+    );
+    final recentApplicationsJson =
+        (_readFirst(payload, const ['recent_applications', 'recentApplications']) as List?) ?? [];
+
     return DashboardData(
-      stats: DashboardStats.fromJson(
-        (json['stats'] as Map<dynamic, dynamic>).cast<String, dynamic>(),
-      ),
-      manpower: ManpowerData.fromJson(
-        (json['manpower'] as Map<dynamic, dynamic>).cast<String, dynamic>(),
-      ),
-      recentApplications: ((json['recent_applications'] as List?) ?? [])
+      stats: DashboardStats.fromJson(statsJson),
+      manpower: ManpowerData.fromJson(manpowerJson),
+      recentApplications: recentApplicationsJson
           .map(
             (item) => ApplicationSummary.fromJson(
               (item as Map<dynamic, dynamic>).cast<String, dynamic>(),
@@ -162,20 +219,32 @@ class DashboardStats {
   final int completedThisMonth;
 
   factory DashboardStats.fromJson(Map<String, dynamic> json) {
-    int read(String key) => (json[key] as num?)?.toInt() ?? 0;
+    int read(List<String> keys) => _readInt(_readFirst(json, keys));
     return DashboardStats(
-      totalApplications: read('total_applications'),
-      todayApplications: read('today_applications'),
-      totalApplicants: read('total_applicants'),
-      pendingL1: read('pending_l1'),
-      pendingL2: read('pending_l2'),
-      pendingL3: read('pending_l3'),
-      pendingL4: read('pending_l4'),
-      joinedThisMonth: read('joined_this_month'),
-      onHold: read('on_hold'),
-      offersReleased: read('offers_released'),
-      rejected: read('rejected'),
-      completedThisMonth: read('completed_this_month'),
+      totalApplications: read(
+        const ['total_applications', 'totalApplications', 'applications_total'],
+      ),
+      todayApplications: read(
+        const ['today_applications', 'todayApplications', 'today_application'],
+      ),
+      totalApplicants: read(
+        const ['total_applicants', 'totalApplicants', 'applicants_total'],
+      ),
+      pendingL1: read(const ['pending_l1', 'pendingL1', 'pending_pre_screening']),
+      pendingL2: read(const ['pending_l2', 'pendingL2']),
+      pendingL3: read(const ['pending_l3', 'pendingL3']),
+      pendingL4: read(const ['pending_l4', 'pendingL4']),
+      joinedThisMonth: read(
+        const ['joined_this_month', 'joinedThisMonth', 'joined_month'],
+      ),
+      onHold: read(const ['on_hold', 'onHold', 'hold']),
+      offersReleased: read(
+        const ['offers_released', 'offersReleased', 'offer_released'],
+      ),
+      rejected: read(const ['rejected', 'rejected_count']),
+      completedThisMonth: read(
+        const ['completed_this_month', 'completedThisMonth', 'completed_month'],
+      ),
     );
   }
 }
@@ -200,7 +269,7 @@ class ManpowerData {
   final List<DesignationStrength> designations;
 
   factory ManpowerData.fromJson(Map<String, dynamic> json) {
-    int read(String key) => (json[key] as num?)?.toInt() ?? 0;
+    int read(String key) => _readInt(json[key]);
     return ManpowerData(
       totalRequired: read('total_required'),
       totalCurrent: read('total_current'),
@@ -238,9 +307,9 @@ class DesignationStrength {
     return DesignationStrength(
       name: (json['name'] ?? '').toString(),
       full: (json['full'] ?? '').toString(),
-      requiredCount: (json['req'] as num?)?.toInt() ?? 0,
-      currentCount: (json['cur'] as num?)?.toInt() ?? 0,
-      vacancy: (json['vacancy'] as num?)?.toInt() ?? 0,
+      requiredCount: _readInt(json['req']),
+      currentCount: _readInt(json['cur']),
+      vacancy: _readInt(json['vacancy']),
     );
   }
 }
@@ -267,12 +336,12 @@ class ApplicationPage {
             (item) => ApplicationSummary.fromJson(
               (item as Map<dynamic, dynamic>).cast<String, dynamic>(),
             ),
-          )
+      )
           .toList(),
-      currentPage: (json['current_page'] as num?)?.toInt() ?? 1,
-      lastPage: (json['last_page'] as num?)?.toInt() ?? 1,
-      perPage: (json['per_page'] as num?)?.toInt() ?? 20,
-      total: (json['total'] as num?)?.toInt() ?? 0,
+      currentPage: _readInt(json['current_page'], fallback: 1),
+      lastPage: _readInt(json['last_page'], fallback: 1),
+      perPage: _readInt(json['per_page'], fallback: 20),
+      total: _readInt(json['total']),
     );
   }
 }
@@ -955,16 +1024,28 @@ class ApiClient {
     required String employeeCode,
     required String password,
   }) async {
-    final json = await _request(
-      method: 'POST',
-      path: '/auth/login',
-      body: {
-        'employee_code': employeeCode.trim().toUpperCase(),
-        'password': password,
-      },
-      requiresAuth: false,
-    );
-    return LoginResult.fromJson(json);
+    final payload = {
+      'employee_code': employeeCode.trim().toUpperCase(),
+      'password': password,
+    };
+
+    ApiException? lastError;
+    for (final path in const ['/auth/login', '/login']) {
+      try {
+        final json = await _request(
+          method: 'POST',
+          path: path,
+          body: payload,
+          requiresAuth: false,
+        );
+        return LoginResult.fromJson(json);
+      } on ApiException catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError ??
+        ApiException('Login failed. Could not find a working login endpoint.');
   }
 
   Future<void> logout() async {
@@ -1099,65 +1180,117 @@ class ApiClient {
       throw ApiException('Please log in first.');
     }
 
-    final uri = Uri.parse('${ApiConfig.baseUrl}$path').replace(
-      queryParameters: query == null || query.isEmpty ? null : query,
-    );
-
     final headers = <String, String>{
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       if (requiresAuth) 'Authorization': 'Bearer $token',
     };
 
-    late http.Response response;
-    try {
-      if (method == 'GET') {
-        response = await http.get(uri, headers: headers);
-      } else if (method == 'POST') {
-        response = await http.post(
-          uri,
-          headers: headers,
-          body: body == null ? null : jsonEncode(body),
+    ApiException? lastError;
+    for (final baseUrl in ApiConfig.candidateBaseUrls) {
+      final uri = Uri.parse('$baseUrl$path').replace(
+        queryParameters: query == null || query.isEmpty ? null : query,
+      );
+
+      late http.Response response;
+      try {
+        if (method == 'GET') {
+          response = await http.get(uri, headers: headers);
+        } else if (method == 'POST') {
+          response = await http.post(
+            uri,
+            headers: headers,
+            body: body == null ? null : jsonEncode(body),
+          );
+        } else {
+          throw UnsupportedError('Unsupported method $method');
+        }
+      } on Exception {
+        lastError = ApiException(
+          'Could not connect to $baseUrl. Check that the API server is running and reachable from this device.',
         );
-      } else {
-        throw UnsupportedError('Unsupported method $method');
+        continue;
       }
-    } on Exception {
+
+      final responseBody = response.body.trim();
+      final contentType = response.headers['content-type'] ?? '';
+
+      if (responseBody.isNotEmpty && !_looksLikeJson(responseBody)) {
+        lastError = ApiException(
+          _buildNonJsonResponseMessage(
+            uri: uri,
+            statusCode: response.statusCode,
+            contentType: contentType,
+            body: responseBody,
+          ),
+          statusCode: response.statusCode,
+        );
+        continue;
+      }
+
+      final decoded = responseBody.isEmpty
+          ? <String, dynamic>{}
+          : (jsonDecode(responseBody) as Map<dynamic, dynamic>)
+              .cast<String, dynamic>();
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return decoded;
+      }
+
+      final errorsJson = decoded['errors'];
+      Map<String, List<String>>? errors;
+      if (errorsJson is Map) {
+        errors = errorsJson.map(
+          (key, value) => MapEntry(
+            '$key',
+            ((value as List?) ?? []).map((item) => '$item').toList(),
+          ),
+        );
+      }
+
+      final message = (decoded['message'] ??
+              decoded['error'] ??
+              'Request failed (${response.statusCode}).')
+          .toString();
+
       throw ApiException(
-        'Could not connect to ${ApiConfig.baseUrl}. Check that the API server is running and reachable from this device.',
+        message,
+        statusCode: response.statusCode,
+        errors: errors,
       );
     }
 
-    final decoded = response.body.isEmpty
-        ? <String, dynamic>{}
-        : (jsonDecode(response.body) as Map<dynamic, dynamic>)
-            .cast<String, dynamic>();
+    throw lastError ??
+        ApiException(
+          'Could not connect to any configured API base URL. '
+          'Tried: ${ApiConfig.candidateBaseUrls.join(', ')}',
+          statusCode: 500,
+        );
+  }
 
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return decoded;
+  bool _looksLikeJson(String body) {
+    return body.startsWith('{') || body.startsWith('[');
+  }
+
+  String _buildNonJsonResponseMessage({
+    required Uri uri,
+    required int statusCode,
+    required String contentType,
+    required String body,
+  }) {
+    final preview = body.replaceAll(RegExp(r'\s+'), ' ');
+    final shortPreview =
+        preview.length > 120 ? '${preview.substring(0, 120)}...' : preview;
+
+    if (body.startsWith('<!DOCTYPE html') || body.startsWith('<html')) {
+      return 'Login failed because $uri returned an HTML page instead of JSON. '
+          'Check that the API base URL is correct and that the `/auth/login` route exists. '
+          'Status: $statusCode. Preview: $shortPreview';
     }
 
-    final errorsJson = decoded['errors'];
-    Map<String, List<String>>? errors;
-    if (errorsJson is Map) {
-      errors = errorsJson.map(
-        (key, value) => MapEntry(
-          '$key',
-          ((value as List?) ?? []).map((item) => '$item').toList(),
-        ),
-      );
-    }
-
-    final message = (decoded['message'] ??
-            decoded['error'] ??
-            'Request failed (${response.statusCode}).')
-        .toString();
-
-    throw ApiException(
-      message,
-      statusCode: response.statusCode,
-      errors: errors,
-    );
+    final type = contentType.isEmpty ? 'unknown content type' : contentType;
+    return 'Request to $uri returned a non-JSON response ($type). '
+        'Status: $statusCode. Preview: $shortPreview';
   }
 }
 

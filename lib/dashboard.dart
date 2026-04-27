@@ -65,49 +65,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.28,
-                children: [
-                  _StatCard(
-                    icon: Icons.assignment_turned_in_outlined,
-                    iconBg: const Color(0xFFF1EEFF),
-                    iconColor: AppShell.primary,
-                    value: '${data.stats.todayApplications}',
-                    label: 'TODAY\nAPPLICATIONS',
-                  ),
-                  _StatCard(
-                    icon: Icons.groups_2_outlined,
-                    iconBg: const Color(0xFFF8ECFF),
-                    iconColor: const Color(0xFFD055F5),
-                    value: '${data.stats.onHold}',
-                    label: 'ON\nHOLD',
-                  ),
-                  _StatCard(
-                    icon: Icons.person_add_alt_1_outlined,
-                    iconBg: const Color(0xFFEAF8F4),
-                    iconColor: const Color(0xFF48A987),
-                    value: '${data.stats.joinedThisMonth}',
-                    label: 'JOINED THIS\nMONTH',
-                  ),
-                  _StatCard(
-                    icon: Icons.mail_outline_rounded,
-                    iconBg: const Color(0xFFFFEFF2),
-                    iconColor: const Color(0xFFE45B72),
-                    value: '${data.stats.offersReleased}',
-                    label: 'OFFERS\nRELEASED',
-                  ),
-                ],
-              ),
+              _buildStatsGrid(data.stats),
               const SizedBox(height: 24),
               _OverviewCard(manpower: data.manpower),
               const SizedBox(height: 24),
               const Text(
-                'Recruitment Funnel',
+                'Pending By Stage',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -116,7 +79,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 14),
               _FunnelCard(
-                level: 'Pre-Screening',
+                level: 'Level 1 / Pre-Screening',
                 badge: 'PENDING ${data.stats.pendingL1}',
                 progress: _toProgress(data.stats.pendingL1, data.stats.totalApplications),
               ),
@@ -134,7 +97,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 12),
               _FunnelCard(
-                level: 'Salary Finalisation',
+                level: 'Level 4 / Salary Finalisation',
                 badge: 'PENDING ${data.stats.pendingL4}',
                 progress: _toProgress(data.stats.pendingL4, data.stats.totalApplications),
               ),
@@ -178,6 +141,75 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
     final raw = value / total;
     return raw.clamp(0.0, 1.0);
+  }
+
+  Widget _buildStatsGrid(DashboardStats stats) {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 1.28,
+      children: [
+        _StatCard(
+          icon: Icons.assignment_outlined,
+          iconBg: const Color(0xFFF1EEFF),
+          iconColor: AppShell.primary,
+          value: '${stats.totalApplications}',
+          label: 'TOTAL\nAPPLICATIONS',
+        ),
+        _StatCard(
+          icon: Icons.today_outlined,
+          iconBg: const Color(0xFFEAF4FF),
+          iconColor: const Color(0xFF2674EA),
+          value: '${stats.todayApplications}',
+          label: 'TODAY\nAPPLICATIONS',
+        ),
+        _StatCard(
+          icon: Icons.groups_2_outlined,
+          iconBg: const Color(0xFFFFF3E8),
+          iconColor: const Color(0xFFE28A1B),
+          value: '${stats.totalApplicants}',
+          label: 'TOTAL\nAPPLICANTS',
+        ),
+        _StatCard(
+          icon: Icons.verified_user_outlined,
+          iconBg: const Color(0xFFEAF8F4),
+          iconColor: const Color(0xFF48A987),
+          value: '${stats.completedThisMonth}',
+          label: 'COMPLETED THIS\nMONTH',
+        ),
+        _StatCard(
+          icon: Icons.pause_circle_outline_rounded,
+          iconBg: const Color(0xFFF8ECFF),
+          iconColor: const Color(0xFFD055F5),
+          value: '${stats.onHold}',
+          label: 'ON\nHOLD',
+        ),
+        _StatCard(
+          icon: Icons.mail_outline_rounded,
+          iconBg: const Color(0xFFFFEFF2),
+          iconColor: const Color(0xFFE45B72),
+          value: '${stats.offersReleased}',
+          label: 'OFFERS\nRELEASED',
+        ),
+        _StatCard(
+          icon: Icons.person_add_alt_1_outlined,
+          iconBg: const Color(0xFFEAF8F4),
+          iconColor: const Color(0xFF48A987),
+          value: '${stats.joinedThisMonth}',
+          label: 'JOINED THIS\nMONTH',
+        ),
+        _StatCard(
+          icon: Icons.cancel_outlined,
+          iconBg: const Color(0xFFFFF1F2),
+          iconColor: const Color(0xFFD92D20),
+          value: '${stats.rejected}',
+          label: 'PAFT\nREJECTED',
+        ),
+      ],
+    );
   }
 
   Widget _buildTableCard(List<DesignationStrength> rows) {

@@ -1,154 +1,134 @@
 import 'package:flutter/material.dart';
+import 'package:recruitment/api.dart';
 import 'package:recruitment/app_shell.dart';
 
-class AccountScreen extends StatelessWidget {
+class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
 
-  static const Color _primary = Color(0xFF4C63F1);
-  static const Color _textPrimary = Color(0xFF111827);
-  static const Color _textSecondary = Color(0xFF6B7280);
+  static const Color primary = Color(0xFF4C63F1);
+  static const Color textPrimary = Color(0xFF111827);
+  static const Color textSecondary = Color(0xFF6B7280);
+
+  @override
+  State<AccountScreen> createState() => _AccountScreenState();
+}
+
+class _AccountScreenState extends State<AccountScreen> {
+  late Future<ProfileData> _profileFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileFuture = AppSession.instance.api.getProfile();
+  }
+
+  Future<void> _reload() async {
+    setState(() {
+      _profileFuture = AppSession.instance.api.getProfile();
+    });
+    await _profileFuture;
+  }
 
   @override
   Widget build(BuildContext context) {
-    const performanceItems = [
-      _PerformanceItem(
-        value: '0',
-        label: 'Total Managed',
-        accent: Color(0xFF4C63F1),
-      ),
-      _PerformanceItem(
-        value: '0',
-        label: 'Awaiting Pre-Screen',
-        accent: Color(0xFF7C3AED),
-      ),
-      _PerformanceItem(
-        value: '0',
-        label: 'LEVEL 2',
-        accent: Color(0xFFF59E0B),
-      ),
-      _PerformanceItem(
-        value: '0',
-        label: 'LEVEL 3',
-        accent: Color(0xFF8B5CF6),
-      ),
-      _PerformanceItem(
-        value: '0',
-        label: 'LEVEL 4 / Salary',
-        accent: Color(0xFF06B6D4),
-      ),
-      _PerformanceItem(
-        value: '0',
-        label: 'Joined',
-        accent: Color(0xFF10B981),
-      ),
-      _PerformanceItem(
-        value: '0',
-        label: 'Offers Released',
-        accent: Color(0xFF60A5FA),
-      ),
-      _PerformanceItem(
-        value: '0',
-        label: 'On Hold',
-        accent: Color(0xFFF59E0B),
-      ),
-      _PerformanceItem(
-        value: '0',
-        label: 'Rejected',
-        accent: Color(0xFFEF4444),
-      ),
-    ];
-
-    const hrStaff = [
-      _HrStaffItem(
-        initials: 'JE',
-        name: 'Jerome S',
-        role: 'HR',
-        total: '2',
-        passed: '2',
-        atL2: '1',
-        atL4: '1',
-      ),
-      _HrStaffItem(
-        initials: 'NA',
-        name: 'Nandhini',
-        role: 'HR',
-        total: '0',
-        passed: '0',
-      ),
-      _HrStaffItem(
-        initials: 'SU',
-        name: 'Super Administrator',
-        role: 'Super Admin',
-        total: '0',
-        passed: '0',
-      ),
-      _HrStaffItem(
-        initials: 'VI',
-        name: 'Vinoth S',
-        role: 'HR',
-        total: '0',
-        passed: '0',
-      ),
-    ];
-
     return AppPageLayout(
       selectedTab: AppTab.profile,
       sectionLabel: 'Profile',
       title: 'Profile',
-      subtitle: 'Manage admin details and team performance in one place.',
+      subtitle: 'Manage user details and recent activity.',
       titleTrailing: const AppTopAction(icon: Icons.person_outline_rounded),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildProfileCard(),
-          const SizedBox(height: 26),
-          const Text(
-            'MY PERFORMANCE',
-            style: TextStyle(
-              fontSize: 12,
-              letterSpacing: 2,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF7B8498),
-            ),
-          ),
-          const SizedBox(height: 14),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: performanceItems.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.36,
-            ),
-            itemBuilder: (context, index) {
-              return _PerformanceCard(item: performanceItems[index]);
-            },
-          ),
-          const SizedBox(height: 12),
-          _buildClosureCard(),
-          const SizedBox(height: 26),
-          const Text(
-            'HR STAFF PERFORMANCE OVERVIEW',
-            style: TextStyle(
-              fontSize: 12,
-              letterSpacing: 1.8,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF7B8498),
-            ),
-          ),
-          const SizedBox(height: 14),
-          ...hrStaff.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: _HrStaffCard(item: item),
-              )),
-        ],
+      child: FutureBuilder<ProfileData>(
+        future: _profileFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            final message = snapshot.error is ApiException
+                ? (snapshot.error as ApiException).message
+                : 'Unable to load profile.';
+            return _ProfileErrorCard(message: message, onRetry: _reload);
+          }
+
+          final profile = snapshot.data!;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildProfileCard(profile),
+              const SizedBox(height: 26),
+              const Text(
+                'MY PERFORMANCE',
+                style: TextStyle(
+                  fontSize: 12,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF7B8498),
+                ),
+              ),
+              const SizedBox(height: 14),
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.32,
+                children: [
+                  _PerformanceCard(
+                    value: '${profile.activity.managedApplications}',
+                    label: 'Managed Applications',
+                    accent: const Color(0xFF4C63F1),
+                  ),
+                  _PerformanceCard(
+                    value: '${profile.activity.assignedApplications}',
+                    label: 'Assigned Applications',
+                    accent: const Color(0xFF7C3AED),
+                  ),
+                  _PerformanceCard(
+                    value: profile.designation?.shortName ?? '--',
+                    label: 'Designation',
+                    accent: const Color(0xFFF59E0B),
+                  ),
+                  _PerformanceCard(
+                    value: profile.branch?.code ?? '--',
+                    label: 'Branch Code',
+                    accent: const Color(0xFF06B6D4),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 26),
+              const Text(
+                'RECENT LOGINS',
+                style: TextStyle(
+                  fontSize: 12,
+                  letterSpacing: 1.8,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF7B8498),
+                ),
+              ),
+              const SizedBox(height: 14),
+              ...profile.recentLogins.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _LoginHistoryCard(item: item),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildProfileCard() {
+  Widget _buildProfileCard(ProfileData profile) {
+    final initials = profile.name
+        .split(' ')
+        .where((part) => part.isNotEmpty)
+        .take(2)
+        .map((part) => part[0].toUpperCase())
+        .join();
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -176,9 +156,9 @@ class AccountScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
             ),
             alignment: Alignment.center,
-            child: const Text(
-              'SU',
-              style: TextStyle(
+            child: Text(
+              initials.isEmpty ? 'U' : initials,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 24,
                 fontWeight: FontWeight.w800,
@@ -186,7 +166,7 @@ class AccountScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -194,111 +174,56 @@ class AccountScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'Super Administrator',
-                        style: TextStyle(
+                        profile.name,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
-                          color: _textPrimary,
+                          color: AccountScreen.textPrimary,
                         ),
                       ),
                     ),
-                    _StatusPill(label: 'Active'),
+                    _StatusPill(label: profile.isActive ? 'Active' : 'Inactive'),
                   ],
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text(
-                  'Code: SUPER001',
-                  style: TextStyle(
+                  'Code: ${profile.employeeCode}',
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: _textSecondary,
+                    color: AccountScreen.textSecondary,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  'Email: superadmin@patgroup.com',
-                  style: TextStyle(
+                  'Email: ${profile.email}',
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: _textSecondary,
+                    color: AccountScreen.textSecondary,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  'Role: Super Admin',
-                  style: TextStyle(
+                  'Role: ${profile.role.name}',
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: _textSecondary,
+                    color: AccountScreen.textSecondary,
                   ),
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildClosureCard() {
-    const items = [
-      _ClosureMetric(label: 'Not Responding', value: '0', color: Color(0xFFEF4444)),
-      _ClosureMetric(label: 'Rejected', value: '0', color: Color(0xFFEF4444)),
-      _ClosureMetric(label: 'No Vacancy', value: '0', color: Color(0xFF3B82F6)),
-    ];
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x10000000),
-            blurRadius: 16,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'PRE-SCREEN CLOSURE',
-            style: TextStyle(
-              fontSize: 11,
-              letterSpacing: 1.8,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF818AA0),
-            ),
-          ),
-          const SizedBox(height: 14),
-          ...items.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      item.label,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: _textPrimary,
-                      ),
-                    ),
-                  ),
+                if (profile.branch != null) ...[
+                  const SizedBox(height: 4),
                   Text(
-                    item.value,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: item.color,
+                    'Branch: ${profile.branch!.name}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AccountScreen.textSecondary,
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
           ),
         ],
@@ -332,8 +257,8 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
-class _PerformanceItem {
-  const _PerformanceItem({
+class _PerformanceCard extends StatelessWidget {
+  const _PerformanceCard({
     required this.value,
     required this.label,
     required this.accent,
@@ -342,12 +267,6 @@ class _PerformanceItem {
   final String value;
   final String label;
   final Color accent;
-}
-
-class _PerformanceCard extends StatelessWidget {
-  const _PerformanceCard({required this.item});
-
-  final _PerformanceItem item;
 
   @override
   Widget build(BuildContext context) {
@@ -356,7 +275,7 @@ class _PerformanceCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border(top: BorderSide(color: item.accent, width: 3)),
+        border: Border(top: BorderSide(color: accent, width: 3)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x10000000),
@@ -369,23 +288,23 @@ class _PerformanceCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            item.value,
+            value,
             style: TextStyle(
               fontSize: 28,
               height: 1,
               fontWeight: FontWeight.w800,
-              color: item.accent,
+              color: accent,
             ),
           ),
           const SizedBox(height: 10),
           Text(
-            item.label,
+            label,
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 11,
               height: 1.35,
               fontWeight: FontWeight.w600,
-              color: AccountScreen._textSecondary,
+              color: AccountScreen.textSecondary,
             ),
           ),
         ],
@@ -394,42 +313,10 @@ class _PerformanceCard extends StatelessWidget {
   }
 }
 
-class _ClosureMetric {
-  const _ClosureMetric({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
+class _LoginHistoryCard extends StatelessWidget {
+  const _LoginHistoryCard({required this.item});
 
-  final String label;
-  final String value;
-  final Color color;
-}
-
-class _HrStaffItem {
-  const _HrStaffItem({
-    required this.initials,
-    required this.name,
-    required this.role,
-    required this.total,
-    required this.passed,
-    this.atL2 = '0',
-    this.atL4 = '0',
-  });
-
-  final String initials;
-  final String name;
-  final String role;
-  final String total;
-  final String passed;
-  final String atL2;
-  final String atL4;
-}
-
-class _HrStaffCard extends StatelessWidget {
-  const _HrStaffCard({required this.item});
-
-  final _HrStaffItem item;
+  final LoginSessionInfo item;
 
   @override
   Widget build(BuildContext context) {
@@ -438,111 +325,51 @@ class _HrStaffCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: const [
           BoxShadow(
             color: Color(0x10000000),
-            blurRadius: 14,
-            offset: Offset(0, 6),
+            blurRadius: 12,
+            offset: Offset(0, 5),
           ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8EEFF),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  item.initials,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: AccountScreen._primary,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.name,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: AccountScreen._textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      item.role,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AccountScreen._textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFFEEF3FF),
-                  foregroundColor: AccountScreen._primary,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                child: Text(
+                  item.status.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: item.status == 'success'
+                        ? const Color(0xFF129B62)
+                        : const Color(0xFFE45B72),
                   ),
                 ),
-                child: const Text(
-                  'View',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              Text(
+                item.ipAddress ?? '--',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AccountScreen.textSecondary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _MiniMetric(
-                  label: 'Total',
-                  value: item.total,
-                  color: const Color(0xFF111827),
-                ),
-              ),
-              Expanded(
-                child: _MiniMetric(
-                  label: 'PS Passed',
-                  value: item.passed,
-                  color: const Color(0xFF3B82F6),
-                ),
-              ),
-              Expanded(
-                child: _MiniMetric(
-                  label: 'At L2',
-                  value: item.atL2,
-                  color: const Color(0xFFF59E0B),
-                ),
-              ),
-              Expanded(
-                child: _MiniMetric(
-                  label: 'At L4',
-                  value: item.atL4,
-                  color: const Color(0xFF06B6D4),
-                ),
-              ),
-            ],
+          const SizedBox(height: 10),
+          Text(
+            'Login: ${item.loggedInAt ?? '--'}',
+            style: const TextStyle(color: AccountScreen.textPrimary),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Logout: ${item.loggedOutAt ?? 'Session open'}',
+            style: const TextStyle(color: AccountScreen.textSecondary),
           ),
         ],
       ),
@@ -550,40 +377,36 @@ class _HrStaffCard extends StatelessWidget {
   }
 }
 
-class _MiniMetric extends StatelessWidget {
-  const _MiniMetric({
-    required this.label,
-    required this.value,
-    required this.color,
+class _ProfileErrorCard extends StatelessWidget {
+  const _ProfileErrorCard({
+    required this.message,
+    required this.onRetry,
   });
 
-  final String label;
-  final String value;
-  final Color color;
+  final String message;
+  final Future<void> Function() onRetry;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: color,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.account_circle_outlined, size: 42, color: Color(0xFF9AA1B1)),
+          const SizedBox(height: 12),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: () => onRetry(),
+            child: const Text('Retry'),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: AccountScreen._textSecondary,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

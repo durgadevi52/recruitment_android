@@ -166,15 +166,11 @@ class AppBottomNav extends StatelessWidget {
       return;
     }
 
-    late final Widget screen;
-    switch (tab) {
-      case AppTab.dashboard:
-        screen = const DashboardScreen();
-      case AppTab.candidates:
-        screen = const AllCandidatesScreen();
-      case AppTab.profile:
-        screen = const AccountScreen();
-    }
+    final screen = switch (tab) {
+      AppTab.dashboard => const DashboardScreen(),
+      AppTab.candidates => const AllCandidatesScreen(),
+      AppTab.profile => const AccountScreen(),
+    };
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(builder: (context) => screen),

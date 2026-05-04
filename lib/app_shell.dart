@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:recruitment/account.dart';
 import 'package:recruitment/allcandidates.dart';
+import 'package:recruitment/api.dart';
 import 'package:recruitment/dashboard.dart';
 
 enum AppTab { dashboard, candidates, profile }
@@ -93,6 +94,71 @@ class AppPageHeader extends StatelessWidget {
 
   final String sectionLabel;
 
+  Future<void> _confirmLogout(BuildContext context) async {
+    var isLoggingOut = false;
+
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> submitLogout() async {
+              setDialogState(() {
+                isLoggingOut = true;
+              });
+              Navigator.of(dialogContext).pop(true);
+            }
+
+            return AlertDialog(
+              title: const Text('Logout'),
+              content: const Text('Are you sure you want to logout?'),
+              actions: [
+                TextButton(
+                  onPressed: isLoggingOut
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: isLoggingOut ? null : submitLogout,
+                  child: isLoggingOut
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Submit'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (shouldLogout != true) {
+      return;
+    }
+
+    try {
+      await AppSession.instance.api.logout();
+    } on ApiException {
+      // The local session should still end even if the server is unreachable.
+    } finally {
+      await AppSession.instance.clear();
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+
+    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+      '/login',
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -109,21 +175,18 @@ class AppPageHeader extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        Container(
-          width: 34,
-          height: 34,
-          decoration: const BoxDecoration(
-            color: Color(0xFF272A35),
-            shape: BoxShape.circle,
-          ),
-          alignment: Alignment.center,
-          child: const Text(
-            'S',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
+        IconButton(
+          tooltip: 'Logout',
+          onPressed: () => _confirmLogout(context),
+          style: IconButton.styleFrom(
+            backgroundColor: const Color(0xFFFFF1F2),
+            foregroundColor: const Color(0xFFD92D20),
+            fixedSize: const Size(38, 38),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
+          icon: const Icon(Icons.logout_rounded, size: 20),
         ),
       ],
     );

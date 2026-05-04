@@ -24,6 +24,9 @@ class MyApp extends StatelessWidget {
             scaffoldBackgroundColor: const Color(0xFFF6F7FB),
             useMaterial3: true,
           ),
+          routes: {
+            '/login': (context) => const LoginScreen(),
+          },
           home: AppSession.instance.isLoggedIn
               ? (AppSession.instance.user?.isHr ?? false)
                     ? const DashboardScreen()

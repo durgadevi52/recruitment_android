@@ -379,7 +379,7 @@ class ApplicationSummary {
 
   factory ApplicationSummary.fromJson(Map<String, dynamic> json) {
     return ApplicationSummary(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: _readInt(json['id']),
       candidateName: (json['candidate_name'] ?? '').toString(),
       contact: (json['contact'] ?? '').toString(),
       gender: (json['gender'] ?? '').toString(),
@@ -387,7 +387,7 @@ class ApplicationSummary {
       branch: (json['branch'] ?? '').toString(),
       statusCode: (json['status_code'] ?? '').toString(),
       statusLabel: (json['status_label'] ?? '').toString(),
-      stage: (json['stage'] as num?)?.toInt() ?? 0,
+      stage: _readInt(json['stage']),
       preScreening: json['pre_screening']?.toString(),
       assignedTo: json['assigned_to']?.toString(),
       hrManager: json['hr_manager']?.toString(),
@@ -442,14 +442,14 @@ class ApplicationDetail {
         (json[key] as Map?)?.cast<String, dynamic>();
 
     return ApplicationDetail(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      currentStage: (json['current_stage'] as num?)?.toInt() ?? 0,
+      id: _readInt(json['id']),
+      currentStage: _readInt(json['current_stage']),
       statusCode: (json['status_code'] ?? '').toString(),
       statusLabel: (json['status_label'] ?? '').toString(),
       preScreening: json['pre_screening']?.toString(),
       salaryOffered: json['salary_offered']?.toString(),
       remarks: json['remarks']?.toString(),
-      lagDays: (json['lag_days'] as num?)?.toInt(),
+      lagDays: json['lag_days'] == null ? null : _readInt(json['lag_days']),
       createdAt: (json['created_at'] ?? '').toString(),
       updatedAt: (json['updated_at'] ?? '').toString(),
       candidate: CandidateProfile.fromJson(readMap('candidate') ?? {}),
@@ -665,8 +665,8 @@ class ApplicationStage {
 
   factory ApplicationStage.fromJson(Map<String, dynamic> json) {
     return ApplicationStage(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      stageNumber: (json['stage_number'] as num?)?.toInt() ?? 0,
+      id: _readInt(json['id']),
+      stageNumber: _readInt(json['stage_number']),
       stageName: (json['stage_name'] ?? '').toString(),
       actionTaken: (json['action_taken'] ?? '').toString(),
       remarks: json['remarks']?.toString(),
@@ -797,7 +797,7 @@ class ProfileData {
 
   factory ProfileData.fromJson(Map<String, dynamic> json) {
     return ProfileData(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: _readInt(json['id']),
       name: (json['name'] ?? '').toString(),
       employeeCode: (json['employee_code'] ?? '').toString(),
       email: (json['email'] ?? '').toString(),
@@ -883,9 +883,8 @@ class ActivityInfo {
 
   factory ActivityInfo.fromJson(Map<String, dynamic> json) {
     return ActivityInfo(
-      assignedApplications:
-          (json['assigned_applications'] as num?)?.toInt() ?? 0,
-      managedApplications: (json['managed_applications'] as num?)?.toInt() ?? 0,
+      assignedApplications: _readInt(json['assigned_applications']),
+      managedApplications: _readInt(json['managed_applications']),
     );
   }
 }

@@ -540,17 +540,19 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
               Expanded(
                 child: _buildBranchFilter(),
               ),
-              const SizedBox(width: 12),
-              FilterChip(
-                label: const Text('My Apps'),
-                selected: _myAppsOnly,
-                onSelected: (value) async {
-                  setState(() {
-                    _myAppsOnly = value;
-                  });
-                  await _loadInitial();
-                },
-              ),
+              if (AppSession.instance.user?.isHr ?? false) ...[
+                const SizedBox(width: 12),
+                FilterChip(
+                  label: const Text('My Apps'),
+                  selected: _myAppsOnly,
+                  onSelected: (value) async {
+                    setState(() {
+                      _myAppsOnly = value;
+                    });
+                    await _loadInitial();
+                  },
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 20),
@@ -730,12 +732,20 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
 
   List<_StatusChipData> get _statusChips => const [
         _StatusChipData(label: 'All', value: null),
-        _StatusChipData(label: 'Pre-Screen', value: 'prescreening'),
+        _StatusChipData(label: 'Pre-Screening', value: 'prescreening'),
         _StatusChipData(label: 'L1', value: 'l1'),
         _StatusChipData(label: 'L2', value: 'l2'),
         _StatusChipData(label: 'L3', value: 'l3'),
+        _StatusChipData(label: 'L4', value: 'l4'),
+        _StatusChipData(label: 'Salary', value: 'salary'),
+        _StatusChipData(label: 'Offer Released', value: 'offer_released'),
+        _StatusChipData(label: 'Offer Accepted', value: 'offer_accepted'),
+        _StatusChipData(label: 'Joining Started', value: 'joining_initiated'),
+        _StatusChipData(label: 'Joining Pending', value: 'joining_pending'),
         _StatusChipData(label: 'Joined', value: 'joined'),
         _StatusChipData(label: 'Hold', value: 'hold'),
+        _StatusChipData(label: 'Not Responding', value: 'not_responding'),
+        _StatusChipData(label: 'No Vacancy', value: 'no_vacancy'),
         _StatusChipData(label: 'Rejected', value: 'rejected'),
       ];
 }
@@ -928,6 +938,44 @@ class _ApplicationDetailScreen extends StatefulWidget {
 class _ApplicationDetailScreenState extends State<_ApplicationDetailScreen> {
   late Future<ApplicationDetail> _detailFuture;
 
+  String _stageLabel(int stage) {
+    switch (stage) {
+      case 0:
+        return 'Level 1 / Pre-Screening';
+      case 1:
+        return 'Level 2';
+      case 2:
+        return 'Level 3';
+      case 3:
+        return 'Level 4 / Salary Finalisation';
+      default:
+        return '$stage';
+    }
+  }
+
+  String _actionLabel(String action) {
+    switch (action) {
+      case 'created':
+        return 'Created';
+      case 'pre_screen_proceed':
+        return 'Pre-Screen Passed';
+      case 'pre_screen_not_responding':
+        return 'Not Responding';
+      case 'pre_screen_rejected':
+        return 'Rejected in Pre-Screen';
+      case 'pre_screen_no_vacancy':
+        return 'No Vacancy';
+      case 'proceed':
+        return 'Proceeded';
+      case 'hold':
+        return 'On Hold';
+      case 'reject':
+        return 'Rejected';
+      default:
+        return action;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1031,7 +1079,11 @@ class _ApplicationDetailScreenState extends State<_ApplicationDetailScreen> {
                 child: Column(
                   children: [
                     _InfoRow(label: 'Status', value: detail.statusLabel),
-                    _InfoRow(label: 'Current Stage', value: '${detail.currentStage}'),
+                    _InfoRow(label: 'Status Code', value: detail.statusCode),
+                    _InfoRow(
+                      label: 'Current Stage',
+                      value: _stageLabel(detail.currentStage),
+                    ),
                     _InfoRow(
                       label: 'Target Branch',
                       value: detail.targetBranch?.name ?? '--',
@@ -1119,6 +1171,7 @@ class _ApplicationDetailScreenState extends State<_ApplicationDetailScreen> {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _StageCard(
                     stage: stage,
+                    actionLabel: _actionLabel(stage.actionTaken),
                     onOpenAttachment: _showDocumentPreview,
                   ),
                 ),
@@ -1134,10 +1187,12 @@ class _ApplicationDetailScreenState extends State<_ApplicationDetailScreen> {
 class _StageCard extends StatelessWidget {
   const _StageCard({
     required this.stage,
+    required this.actionLabel,
     required this.onOpenAttachment,
   });
 
   final ApplicationStage stage;
+  final String actionLabel;
   final Future<void> Function(StageAttachment attachment) onOpenAttachment;
 
   @override
@@ -1178,7 +1233,7 @@ class _StageCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  stage.actionTaken,
+                  actionLabel,
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,

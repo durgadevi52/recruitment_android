@@ -35,7 +35,7 @@ class _AccountScreenState extends State<AccountScreen> {
       selectedTab: AppTab.profile,
       sectionLabel: 'Profile',
       title: 'Profile',
-      subtitle: 'Manage user details and recent activity.',
+      subtitle: 'User details, activity summary and recent login history.',
       titleTrailing: const AppTopAction(icon: Icons.person_outline_rounded),
       child: FutureBuilder<ProfileData>(
         future: _profileFuture,
@@ -87,7 +87,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   ),
                   _PerformanceCard(
                     value: profile.designation?.shortName ?? '--',
-                    label: 'Designation',
+                    label: 'Designation Code',
                     accent: const Color(0xFFF59E0B),
                   ),
                   _PerformanceCard(
@@ -108,12 +108,15 @@ class _AccountScreenState extends State<AccountScreen> {
                 ),
               ),
               const SizedBox(height: 14),
-              ...profile.recentLogins.map(
-                (item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _LoginHistoryCard(item: item),
+              if (profile.recentLogins.isEmpty)
+                const _ProfileEmptyCard(message: 'No recent login history available.')
+              else
+                ...profile.recentLogins.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _LoginHistoryCard(item: item),
+                  ),
                 ),
-              ),
             ],
           );
         },
@@ -212,10 +215,30 @@ class _AccountScreenState extends State<AccountScreen> {
                     color: AccountScreen.textSecondary,
                   ),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  'Role Slug: ${profile.role.slug}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AccountScreen.textSecondary,
+                  ),
+                ),
+                if (profile.designation != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Designation: ${profile.designation!.fullName}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AccountScreen.textSecondary,
+                    ),
+                  ),
+                ],
                 if (profile.branch != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Branch: ${profile.branch!.name}',
+                    'Branch: ${profile.branch!.name} (${profile.branch!.code})',
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -372,6 +395,39 @@ class _LoginHistoryCard extends StatelessWidget {
             style: const TextStyle(color: AccountScreen.textSecondary),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ProfileEmptyCard extends StatelessWidget {
+  const _ProfileEmptyCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x10000000),
+            blurRadius: 12,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: AccountScreen.textSecondary,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

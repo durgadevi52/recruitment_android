@@ -124,32 +124,74 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
     );
   }
 
-  Future<void> _showCreateApplicationDialog({String? initialSearch}) async {
+  Future<void> _showCreateApplicationDialog({
+    String? initialSearch,
+    ApplicationSummary? initialApplication,
+  }) async {
+    final applicationToApply = initialApplication;
+    final lockedApplication = applicationToApply != null;
     final remarksController = TextEditingController();
-    final applicantController = TextEditingController(text: initialSearch ?? '');
+    final applicantController = TextEditingController(
+      text: applicationToApply?.candidateName ?? initialSearch ?? '',
+    );
     List<ApplicantLookup> applicants = const [];
     List<LookupOption> hrUsers = const [];
-    List<LookupOption> designations = const [];
-    final branches = _branches;
-    ApplicantLookup? selectedApplicant;
+    ApplicantLookup? selectedApplicant = applicationToApply == null
+        ? null
+        : ApplicantLookup(
+            id: applicationToApply.applicantProfileId,
+            name: applicationToApply.candidateName,
+            contactNumber: applicationToApply.contact,
+            email: '',
+            positionApplied: applicationToApply.position,
+            qualification: '',
+          );
     LookupOption? selectedHrManager;
     LookupOption? selectedAssignedTo;
-    LookupOption? selectedDesignation;
-    LookupOption? selectedBranch;
     String? submitError;
     bool loadingLookups = true;
     bool submitting = false;
 
+    ApplicantLookup? findInitialApplicant(List<ApplicantLookup> found) {
+      if (applicationToApply == null || found.isEmpty) {
+        return null;
+      }
+
+      for (final applicant in found) {
+        if (applicationToApply.applicantProfileId > 0 &&
+            applicant.id == applicationToApply.applicantProfileId) {
+          return applicant;
+        }
+      }
+
+      for (final applicant in found) {
+        if (applicant.contactNumber.isNotEmpty &&
+            applicant.contactNumber == applicationToApply.contact) {
+          return applicant;
+        }
+      }
+
+      for (final applicant in found) {
+        if (applicant.name.trim().toLowerCase() ==
+            applicationToApply.candidateName.trim().toLowerCase()) {
+          return applicant;
+        }
+      }
+
+      return found.first;
+    }
+
     Future<void> loadLookups(StateSetter setDialogState) async {
       try {
         final responses = await Future.wait([
-          AppSession.instance.api.getDesignations(),
           AppSession.instance.api.getHrUsers(),
           AppSession.instance.api.searchApplicants(applicantController.text),
         ]);
-        designations = responses[0] as List<LookupOption>;
-        hrUsers = responses[1] as List<LookupOption>;
-        applicants = responses[2] as List<ApplicantLookup>;
+        hrUsers = responses[0] as List<LookupOption>;
+        applicants = responses[1] as List<ApplicantLookup>;
+        if (lockedApplication) {
+          selectedApplicant = findInitialApplicant(applicants) ?? selectedApplicant;
+        }
       } on ApiException catch (error) {
         submitError = error.message;
       } finally {
@@ -194,6 +236,12 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                 });
                 return;
               }
+              if (selectedApplicant!.id <= 0) {
+                setDialogState(() {
+                  submitError = 'Selected applicant profile was not found.';
+                });
+                return;
+              }
 
               setDialogState(() {
                 submitting = true;
@@ -204,8 +252,6 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                 final created = await AppSession.instance.api.createApplication(
                   CreateApplicationRequest(
                     applicantProfileId: selectedApplicant!.id,
-                    positionId: selectedDesignation?.id,
-                    targetBranchId: selectedBranch?.id,
                     hrManagerId: selectedHrManager?.id,
                     assignedToUserId: selectedAssignedTo?.id,
                     remarks: remarksController.text,
@@ -237,6 +283,34 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
               }
             }
 
+            Widget buildHrManagerField() {
+              return _DropdownField(
+                label: 'HR Manager',
+                value: selectedHrManager,
+                items: hrUsers,
+                hint: 'Select HR Manager',
+                onChanged: (value) {
+                  setDialogState(() {
+                    selectedHrManager = value;
+                  });
+                },
+              );
+            }
+
+            Widget buildInterviewerField() {
+              return _DropdownField(
+                label: 'Assign L1 Interviewer',
+                value: selectedAssignedTo,
+                items: hrUsers,
+                hint: 'Select Interviewer',
+                onChanged: (value) {
+                  setDialogState(() {
+                    selectedAssignedTo = value;
+                  });
+                },
+              );
+            }
+
             return Dialog(
               elevation: 0,
               insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
@@ -254,11 +328,11 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                     children: [
                       Row(
                         children: [
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
+                                const Text(
                                   'NEW APPLICATION',
                                   style: TextStyle(
                                     color: _accent,
@@ -266,14 +340,17 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
-                                SizedBox(height: 2),
+                                const SizedBox(height: 2),
                                 Text(
-                                  'Create Application',
-                                  style: TextStyle(
+                                  lockedApplication
+                                      ? 'New Application — ${applicationToApply!.candidateName}'
+                                      : 'Create Application',
+                                  style: const TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w700,
                                     color: _textPrimary,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
@@ -284,143 +361,149 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
-                      const Text(
-                        'Applicant Search',
-                        style: TextStyle(
-                          fontSize: 12,
-                          letterSpacing: 0.4,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF555D6E),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: applicantController,
-                              decoration: InputDecoration(
-                                hintText: 'Search by name / phone / Aadhaar',
-                                filled: true,
-                                fillColor: Colors.white,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: Color(0xFFD6DBE7)),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: Color(0xFFD6DBE7)),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          SizedBox(
-                            height: 48,
-                            child: FilledButton(
-                              onPressed: () => searchApplicants(),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: _accent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              child: const Text('Search'),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      if (loadingLookups)
-                        const Center(child: CircularProgressIndicator())
-                      else
+                      if (lockedApplication) ...[
+                        const SizedBox(height: 14),
                         Container(
-                          constraints: const BoxConstraints(maxHeight: 180),
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFF),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0xFFE5EAF6)),
+                            color: const Color(0xFFEFF3FF),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFBFD0FF)),
                           ),
-                          child: applicants.isEmpty
-                              ? const Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(16),
-                                    child: Text('No applicants found.'),
-                                  ),
-                                )
-                              : ListView.separated(
-                                  shrinkWrap: true,
-                                  itemCount: applicants.length,
-                                  separatorBuilder: (_, _) =>
-                                      const Divider(height: 1, color: Color(0xFFE9EDF5)),
-                                  itemBuilder: (context, index) {
-                                    final applicant = applicants[index];
-                                    final selected = selectedApplicant?.id == applicant.id;
-                                    return ListTile(
-                                      onTap: () {
-                                        setDialogState(() {
-                                          selectedApplicant = applicant;
-                                        });
-                                      },
-                                      selected: selected,
-                                      title: Text(applicant.name),
-                                      subtitle: Text(
-                                        '${applicant.contactNumber} • ${applicant.qualification}',
-                                      ),
-                                      trailing: selected
-                                          ? const Icon(Icons.check_circle, color: _accent)
-                                          : null,
-                                    );
-                                  },
-                                ),
+                          child: const Text(
+                            'Position and target branch will be set during the pre-screening call.',
+                            style: TextStyle(
+                              color: Color(0xFF5867FF),
+                              fontSize: 12,
+                            ),
+                          ),
                         ),
+                      ] else ...[
+                        const SizedBox(height: 14),
+                        const Text(
+                          'Applicant Search',
+                          style: TextStyle(
+                            fontSize: 12,
+                            letterSpacing: 0.4,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF555D6E),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: applicantController,
+                                decoration: InputDecoration(
+                                  hintText: 'Search by name / phone / Aadhaar',
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFFD6DBE7),
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFFD6DBE7),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            SizedBox(
+                              height: 48,
+                              child: FilledButton(
+                                onPressed: () => searchApplicants(),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: _accent,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                child: const Text('Search'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        if (loadingLookups)
+                          const Center(child: CircularProgressIndicator())
+                        else
+                          Container(
+                            constraints: const BoxConstraints(maxHeight: 180),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFF),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: const Color(0xFFE5EAF6)),
+                            ),
+                            child: applicants.isEmpty
+                                ? const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(16),
+                                      child: Text('No applicants found.'),
+                                    ),
+                                  )
+                                : ListView.separated(
+                                    shrinkWrap: true,
+                                    itemCount: applicants.length,
+                                    separatorBuilder: (_, _) => const Divider(
+                                      height: 1,
+                                      color: Color(0xFFE9EDF5),
+                                    ),
+                                    itemBuilder: (context, index) {
+                                      final applicant = applicants[index];
+                                      final selected =
+                                          selectedApplicant?.id == applicant.id;
+                                      return ListTile(
+                                        onTap: () {
+                                          setDialogState(() {
+                                            selectedApplicant = applicant;
+                                          });
+                                        },
+                                        selected: selected,
+                                        title: Text(applicant.name),
+                                        subtitle: Text(
+                                          '${applicant.contactNumber} • ${applicant.qualification}',
+                                        ),
+                                        trailing: selected
+                                            ? const Icon(
+                                                Icons.check_circle,
+                                                color: _accent,
+                                              )
+                                            : null,
+                                      );
+                                    },
+                                  ),
+                          ),
+                      ],
                       const SizedBox(height: 14),
-                      _DropdownField(
-                        label: 'Position',
-                        value: selectedDesignation,
-                        items: designations,
-                        hint: 'Select designation',
-                        onChanged: (value) {
-                          setDialogState(() {
-                            selectedDesignation = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 14),
-                      _DropdownField(
-                        label: 'Target Branch',
-                        value: selectedBranch,
-                        items: branches,
-                        hint: 'Select branch',
-                        onChanged: (value) {
-                          setDialogState(() {
-                            selectedBranch = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 14),
-                      _DropdownField(
-                        label: 'HR Manager',
-                        value: selectedHrManager,
-                        items: hrUsers,
-                        hint: 'Select HR manager',
-                        onChanged: (value) {
-                          setDialogState(() {
-                            selectedHrManager = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 14),
-                      _DropdownField(
-                        label: 'Assign L1 Interviewer',
-                        value: selectedAssignedTo,
-                        items: hrUsers,
-                        hint: 'Select assigned user',
-                        onChanged: (value) {
-                          setDialogState(() {
-                            selectedAssignedTo = value;
-                          });
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          if (constraints.maxWidth < 420) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                buildHrManagerField(),
+                                const SizedBox(height: 14),
+                                buildInterviewerField(),
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: buildHrManagerField()),
+                              const SizedBox(width: 12),
+                              Expanded(child: buildInterviewerField()),
+                            ],
+                          );
                         },
                       ),
                       const SizedBox(height: 14),
@@ -459,7 +542,10 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                         children: [
                           Expanded(
                             child: FilledButton(
-                              onPressed: submitting ? null : () => submit(),
+                              onPressed: submitting ||
+                                      (lockedApplication && loadingLookups)
+                                  ? null
+                                  : () => submit(),
                               style: FilledButton.styleFrom(
                                 backgroundColor: _accent,
                                 minimumSize: const Size.fromHeight(48),
@@ -600,7 +686,7 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                     count: index + 1,
                     onView: () => _openApplicationDetail(application.id),
                     onApply: () => _showCreateApplicationDialog(
-                      initialSearch: application.candidateName,
+                      initialApplication: application,
                     ),
                   ),
                 );

@@ -349,6 +349,7 @@ class ApplicationPage {
 class ApplicationSummary {
   const ApplicationSummary({
     required this.id,
+    required this.applicantProfileId,
     required this.candidateName,
     required this.contact,
     required this.gender,
@@ -364,6 +365,7 @@ class ApplicationSummary {
   });
 
   final int id;
+  final int applicantProfileId;
   final String candidateName;
   final String contact;
   final String gender;
@@ -380,6 +382,17 @@ class ApplicationSummary {
   factory ApplicationSummary.fromJson(Map<String, dynamic> json) {
     return ApplicationSummary(
       id: _readInt(json['id']),
+      applicantProfileId: _readInt(
+        _readFirst(
+          json,
+          const [
+            'applicant_profile_id',
+            'applicant_id',
+            'candidate_id',
+            'profile_id',
+          ],
+        ),
+      ),
       candidateName: (json['candidate_name'] ?? '').toString(),
       contact: (json['contact'] ?? '').toString(),
       gender: (json['gender'] ?? '').toString(),

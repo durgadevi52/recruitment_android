@@ -42,7 +42,10 @@ class AppPageLayout extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppPageHeader(sectionLabel: sectionLabel),
+              AppPageHeader(
+                selectedTab: selectedTab,
+                sectionLabel: sectionLabel,
+              ),
               const SizedBox(height: 22),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,9 +93,30 @@ class AppPageLayout extends StatelessWidget {
 }
 
 class AppPageHeader extends StatelessWidget {
-  const AppPageHeader({super.key, required this.sectionLabel});
+  const AppPageHeader({
+    super.key,
+    required this.selectedTab,
+    required this.sectionLabel,
+  });
 
+  final AppTab selectedTab;
   final String sectionLabel;
+
+  Future<void> _goBack(BuildContext context) async {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      await navigator.maybePop();
+      return;
+    }
+
+    if (selectedTab != AppTab.dashboard) {
+      navigator.pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (context) => const DashboardScreen(),
+        ),
+      );
+    }
+  }
 
   Future<void> _confirmLogout(BuildContext context) async {
     var isLoggingOut = false;
@@ -176,6 +200,20 @@ class AppPageHeader extends StatelessWidget {
         ),
         const Spacer(),
         IconButton(
+          tooltip: 'Back',
+          onPressed: () => _goBack(context),
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: AppShell.primary,
+            fixedSize: const Size(38, 38),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          icon: const Icon(Icons.arrow_back_rounded, size: 20),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
           tooltip: 'Logout',
           onPressed: () => _confirmLogout(context),
           style: IconButton.styleFrom(
@@ -235,7 +273,7 @@ class AppBottomNav extends StatelessWidget {
       AppTab.profile => const AccountScreen(),
     };
 
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (context) => screen),
     );
   }

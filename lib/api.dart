@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConfig {
   static const _productionHost = 'https://hr.patgroup.org';
+  static const _productionApiBaseUrl = '$_productionHost/api';
 
   static String get baseUrl {
     return candidateBaseUrls.first;
@@ -20,8 +21,8 @@ class ApiConfig {
 
     if (kIsWeb) {
       return const [
-        'https://hr.patgroup.org/api',
-        'https://hr.patgroup.org',
+        _productionApiBaseUrl,
+        _productionHost,
         'http://localhost/api',
         'http://localhost',
       ];
@@ -30,15 +31,15 @@ class ApiConfig {
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return const [
-          'https://hr.patgroup.org/api',
-          'https://hr.patgroup.org',
+          _productionApiBaseUrl,
+          _productionHost,
           'http://10.0.2.2/api',
           'http://10.0.2.2',
         ];
       default:
         return const [
-          'https://hr.patgroup.org/api',
-          'https://hr.patgroup.org',
+          _productionApiBaseUrl,
+          _productionHost,
           'http://localhost/api',
           'http://localhost',
         ];
@@ -125,20 +126,14 @@ class SessionUser {
       'name': name,
       'employee_code': employeeCode,
       'email': email,
-      'role': {
-        'name': roleName,
-        'slug': roleSlug,
-      },
+      'role': {'name': roleName, 'slug': roleSlug},
       'is_hr': isHr,
     };
   }
 }
 
 class LoginResult {
-  const LoginResult({
-    required this.token,
-    required this.user,
-  });
+  const LoginResult({required this.token, required this.user});
 
   final String token;
   final SessionUser user;
@@ -165,15 +160,23 @@ class DashboardData {
   final List<ApplicationSummary> recentApplications;
 
   factory DashboardData.fromJson(Map<String, dynamic> json) {
-    final payload = _readMap(json['data']).isNotEmpty ? _readMap(json['data']) : json;
+    final payload = _readMap(json['data']).isNotEmpty
+        ? _readMap(json['data'])
+        : json;
     final statsJson = _readMap(
-      _readFirst(payload, const ['stats', 'dashboard_stats', 'counts']) ?? payload,
+      _readFirst(payload, const ['stats', 'dashboard_stats', 'counts']) ??
+          payload,
     );
     final manpowerJson = _readMap(
       _readFirst(payload, const ['manpower', 'manpower_data', 'overview']),
     );
     final recentApplicationsJson =
-        (_readFirst(payload, const ['recent_applications', 'recentApplications']) as List?) ?? [];
+        (_readFirst(payload, const [
+              'recent_applications',
+              'recentApplications',
+            ])
+            as List?) ??
+        [];
 
     return DashboardData(
       stats: DashboardStats.fromJson(statsJson),
@@ -221,30 +224,46 @@ class DashboardStats {
   factory DashboardStats.fromJson(Map<String, dynamic> json) {
     int read(List<String> keys) => _readInt(_readFirst(json, keys));
     return DashboardStats(
-      totalApplications: read(
-        const ['total_applications', 'totalApplications', 'applications_total'],
-      ),
-      todayApplications: read(
-        const ['today_applications', 'todayApplications', 'today_application'],
-      ),
-      totalApplicants: read(
-        const ['total_applicants', 'totalApplicants', 'applicants_total'],
-      ),
-      pendingL1: read(const ['pending_l1', 'pendingL1', 'pending_pre_screening']),
+      totalApplications: read(const [
+        'total_applications',
+        'totalApplications',
+        'applications_total',
+      ]),
+      todayApplications: read(const [
+        'today_applications',
+        'todayApplications',
+        'today_application',
+      ]),
+      totalApplicants: read(const [
+        'total_applicants',
+        'totalApplicants',
+        'applicants_total',
+      ]),
+      pendingL1: read(const [
+        'pending_l1',
+        'pendingL1',
+        'pending_pre_screening',
+      ]),
       pendingL2: read(const ['pending_l2', 'pendingL2']),
       pendingL3: read(const ['pending_l3', 'pendingL3']),
       pendingL4: read(const ['pending_l4', 'pendingL4']),
-      joinedThisMonth: read(
-        const ['joined_this_month', 'joinedThisMonth', 'joined_month'],
-      ),
+      joinedThisMonth: read(const [
+        'joined_this_month',
+        'joinedThisMonth',
+        'joined_month',
+      ]),
       onHold: read(const ['on_hold', 'onHold', 'hold']),
-      offersReleased: read(
-        const ['offers_released', 'offersReleased', 'offer_released'],
-      ),
+      offersReleased: read(const [
+        'offers_released',
+        'offersReleased',
+        'offer_released',
+      ]),
       rejected: read(const ['rejected', 'rejected_count']),
-      completedThisMonth: read(
-        const ['completed_this_month', 'completedThisMonth', 'completed_month'],
-      ),
+      completedThisMonth: read(const [
+        'completed_this_month',
+        'completedThisMonth',
+        'completed_month',
+      ]),
     );
   }
 }
@@ -336,7 +355,7 @@ class ApplicationPage {
             (item) => ApplicationSummary.fromJson(
               (item as Map<dynamic, dynamic>).cast<String, dynamic>(),
             ),
-      )
+          )
           .toList(),
       currentPage: _readInt(json['current_page'], fallback: 1),
       lastPage: _readInt(json['last_page'], fallback: 1),
@@ -383,15 +402,12 @@ class ApplicationSummary {
     return ApplicationSummary(
       id: _readInt(json['id']),
       applicantProfileId: _readInt(
-        _readFirst(
-          json,
-          const [
-            'applicant_profile_id',
-            'applicant_id',
-            'candidate_id',
-            'profile_id',
-          ],
-        ),
+        _readFirst(json, const [
+          'applicant_profile_id',
+          'applicant_id',
+          'candidate_id',
+          'profile_id',
+        ]),
       ),
       candidateName: (json['candidate_name'] ?? '').toString(),
       contact: (json['contact'] ?? '').toString(),
@@ -556,8 +572,7 @@ class CandidateProfile {
       maritalStatus: json['marital_status']?.toString(),
       hometown: json['hometown']?.toString(),
       address: json['address']?.toString(),
-      languages:
-          ((json['languages'] as List?) ?? []).map((e) => '$e').toList(),
+      languages: ((json['languages'] as List?) ?? []).map((e) => '$e').toList(),
       twoWheeler: json['two_wheeler'] == true,
       fourWheeler: json['four_wheeler'] == true,
       profilePic: json['profile_pic']?.toString(),
@@ -846,11 +861,7 @@ class ProfileData {
 }
 
 class RoleInfo {
-  const RoleInfo({
-    required this.id,
-    required this.name,
-    required this.slug,
-  });
+  const RoleInfo({required this.id, required this.name, required this.slug});
 
   final int id;
   final String name;
@@ -926,11 +937,7 @@ class LoginSessionInfo {
 }
 
 class LookupOption {
-  const LookupOption({
-    required this.id,
-    required this.title,
-    this.subtitle,
-  });
+  const LookupOption({required this.id, required this.title, this.subtitle});
 
   final int id;
   final String title;
@@ -1041,23 +1048,13 @@ class ApiClient {
       'password': password,
     };
 
-    ApiException? lastError;
-    for (final path in const ['/auth/login', '/login']) {
-      try {
-        final json = await _request(
-          method: 'POST',
-          path: path,
-          body: payload,
-          requiresAuth: false,
-        );
-        return LoginResult.fromJson(json);
-      } on ApiException catch (error) {
-        lastError = error;
-      }
-    }
-
-    throw lastError ??
-        ApiException('Login failed. Could not find a working login endpoint.');
+    final json = await _request(
+      method: 'POST',
+      path: '/auth/login',
+      body: payload,
+      requiresAuth: false,
+    );
+    return LoginResult.fromJson(json);
   }
 
   Future<void> logout() async {
@@ -1110,53 +1107,45 @@ class ApiClient {
 
   Future<List<LookupOption>> getDesignations() async {
     final json = await _request(method: 'GET', path: '/meta/designations');
-    return ((json['data'] as List?) ?? [])
-        .map((item) {
-          final map = (item as Map<dynamic, dynamic>).cast<String, dynamic>();
-          return LookupOption(
-            id: (map['id'] as num?)?.toInt() ?? 0,
-            title: (map['short_name'] ?? '').toString(),
-            subtitle: (map['full_name'] ?? '').toString(),
-          );
-        })
-        .toList();
+    return ((json['data'] as List?) ?? []).map((item) {
+      final map = (item as Map<dynamic, dynamic>).cast<String, dynamic>();
+      return LookupOption(
+        id: (map['id'] as num?)?.toInt() ?? 0,
+        title: (map['short_name'] ?? '').toString(),
+        subtitle: (map['full_name'] ?? '').toString(),
+      );
+    }).toList();
   }
 
   Future<List<LookupOption>> getBranches() async {
     final json = await _request(method: 'GET', path: '/meta/branches');
-    return ((json['data'] as List?) ?? [])
-        .map((item) {
-          final map = (item as Map<dynamic, dynamic>).cast<String, dynamic>();
-          return LookupOption(
-            id: (map['id'] as num?)?.toInt() ?? 0,
-            title: (map['name'] ?? '').toString(),
-            subtitle: (map['code'] ?? '').toString(),
-          );
-        })
-        .toList();
+    return ((json['data'] as List?) ?? []).map((item) {
+      final map = (item as Map<dynamic, dynamic>).cast<String, dynamic>();
+      return LookupOption(
+        id: (map['id'] as num?)?.toInt() ?? 0,
+        title: (map['name'] ?? '').toString(),
+        subtitle: (map['code'] ?? '').toString(),
+      );
+    }).toList();
   }
 
   Future<List<LookupOption>> getHrUsers() async {
     final json = await _request(method: 'GET', path: '/meta/hr-users');
-    return ((json['data'] as List?) ?? [])
-        .map((item) {
-          final map = (item as Map<dynamic, dynamic>).cast<String, dynamic>();
-          return LookupOption(
-            id: (map['id'] as num?)?.toInt() ?? 0,
-            title: (map['name'] ?? '').toString(),
-            subtitle: (map['designation'] ?? map['role'] ?? '').toString(),
-          );
-        })
-        .toList();
+    return ((json['data'] as List?) ?? []).map((item) {
+      final map = (item as Map<dynamic, dynamic>).cast<String, dynamic>();
+      return LookupOption(
+        id: (map['id'] as num?)?.toInt() ?? 0,
+        title: (map['name'] ?? '').toString(),
+        subtitle: (map['designation'] ?? map['role'] ?? '').toString(),
+      );
+    }).toList();
   }
 
   Future<List<ApplicantLookup>> searchApplicants(String search) async {
     final json = await _request(
       method: 'GET',
       path: '/meta/applicants',
-      query: {
-        if (search.trim().isNotEmpty) 'search': search.trim(),
-      },
+      query: {if (search.trim().isNotEmpty) 'search': search.trim()},
     );
     return ((json['data'] as List?) ?? [])
         .map(
@@ -1200,12 +1189,13 @@ class ApiClient {
 
     ApiException? lastError;
     for (final baseUrl in ApiConfig.candidateBaseUrls) {
-      final uri = Uri.parse('$baseUrl$path').replace(
-        queryParameters: query == null || query.isEmpty ? null : query,
-      );
+      final uri = Uri.parse(
+        '$baseUrl$path',
+      ).replace(queryParameters: query == null || query.isEmpty ? null : query);
 
       late http.Response response;
       try {
+        debugPrint('ApiClient: $method $uri');
         if (method == 'GET') {
           response = await http.get(uri, headers: headers);
         } else if (method == 'POST') {
@@ -1217,7 +1207,8 @@ class ApiClient {
         } else {
           throw UnsupportedError('Unsupported method $method');
         }
-      } on Exception {
+      } on Exception catch (error) {
+        debugPrint('ApiClient: $method $uri connection failed: $error');
         lastError = ApiException(
           'Could not connect to $baseUrl. Check that the API server is running and reachable from this device.',
         );
@@ -1226,8 +1217,14 @@ class ApiClient {
 
       final responseBody = response.body.trim();
       final contentType = response.headers['content-type'] ?? '';
+      debugPrint(
+        'ApiClient: $method $uri -> ${response.statusCode} ${response.reasonPhrase ?? ''}',
+      );
 
       if (responseBody.isNotEmpty && !_looksLikeJson(responseBody)) {
+        debugPrint(
+          'ApiClient: $method $uri returned non-JSON response: ${responseBody.length} chars',
+        );
         lastError = ApiException(
           _buildNonJsonResponseMessage(
             uri: uri,
@@ -1243,9 +1240,10 @@ class ApiClient {
       final decoded = responseBody.isEmpty
           ? <String, dynamic>{}
           : (jsonDecode(responseBody) as Map<dynamic, dynamic>)
-              .cast<String, dynamic>();
+                .cast<String, dynamic>();
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        debugPrint('ApiClient: $method $uri succeeded');
         return decoded;
       }
 
@@ -1260,10 +1258,12 @@ class ApiClient {
         );
       }
 
-      final message = (decoded['message'] ??
-              decoded['error'] ??
-              'Request failed (${response.statusCode}).')
-          .toString();
+      final message =
+          (decoded['message'] ??
+                  decoded['error'] ??
+                  'Request failed (${response.statusCode}).')
+              .toString();
+      debugPrint('ApiClient: $method $uri failed: $message');
 
       throw ApiException(
         message,
@@ -1291,8 +1291,9 @@ class ApiClient {
     required String body,
   }) {
     final preview = body.replaceAll(RegExp(r'\s+'), ' ');
-    final shortPreview =
-        preview.length > 120 ? '${preview.substring(0, 120)}...' : preview;
+    final shortPreview = preview.length > 120
+        ? '${preview.substring(0, 120)}...'
+        : preview;
 
     if (body.startsWith('<!DOCTYPE html') || body.startsWith('<html')) {
       return 'Login failed because $uri returned an HTML page instead of JSON. '

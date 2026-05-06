@@ -20,22 +20,26 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF5B4CF0)),
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF5B4CF0),
+            ),
             scaffoldBackgroundColor: const Color(0xFFF6F7FB),
             useMaterial3: true,
           ),
-          routes: {
-            '/login': (context) => const LoginScreen(),
-          },
+          routes: {'/login': (context) => const LoginScreen()},
           home: AppSession.instance.isLoggedIn
-              ? (AppSession.instance.user?.isHr ?? false)
-                    ? const DashboardScreen()
-                    : const AllCandidatesScreen()
+              ? _homeForSession(AppSession.instance.user)
               : const LoginScreen(),
         );
       },
     );
   }
+}
+
+Widget _homeForSession(SessionUser? user) {
+  return (user?.isHr ?? false)
+      ? const DashboardScreen()
+      : const AllCandidatesScreen();
 }
 
 class LoginScreen extends StatefulWidget {
@@ -46,10 +50,12 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController employeeController =
-      TextEditingController(text: 'SUPER001');
-  final TextEditingController passwordController =
-      TextEditingController(text: 'Admin@123');
+  final TextEditingController employeeController = TextEditingController(
+    text: 'SUPER001',
+  );
+  final TextEditingController passwordController = TextEditingController(
+    text: 'Admin@123',
+  );
 
   bool _obscurePassword = true;
   bool _rememberMe = true;
@@ -71,12 +77,28 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      debugPrint(
+        'LoginScreen: submitting login for ${employeeController.text.trim().toUpperCase()}',
+      );
       final result = await AppSession.instance.api.login(
         employeeCode: employeeController.text,
         password: passwordController.text,
       );
       await AppSession.instance.saveLogin(result);
+      debugPrint(
+        'LoginScreen: login saved for ${result.user.employeeCode}, isHr=${result.user.isHr}',
+      );
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(
+          builder: (context) => _homeForSession(result.user),
+        ),
+        (route) => false,
+      );
     } on ApiException catch (error) {
+      debugPrint('LoginScreen: login failed - ${error.message}');
       if (!mounted) {
         return;
       }
@@ -200,9 +222,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             });
                           },
                         ),
-                        const Expanded(
-                          child: Text('Remember me for 30 days'),
-                        ),
+                        const Expanded(child: Text('Remember me for 30 days')),
                       ],
                     ),
                     if (_errorMessage != null) ...[

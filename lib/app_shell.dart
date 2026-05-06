@@ -21,6 +21,7 @@ class AppPageLayout extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.titleTrailing,
+    this.showBackButton = false,
     required this.child,
   });
 
@@ -29,6 +30,7 @@ class AppPageLayout extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Widget? titleTrailing;
+  final bool showBackButton;
   final Widget child;
 
   @override
@@ -45,6 +47,7 @@ class AppPageLayout extends StatelessWidget {
               AppPageHeader(
                 selectedTab: selectedTab,
                 sectionLabel: sectionLabel,
+                showBackButton: showBackButton,
               ),
               const SizedBox(height: 22),
               Row(
@@ -97,10 +100,12 @@ class AppPageHeader extends StatelessWidget {
     super.key,
     required this.selectedTab,
     required this.sectionLabel,
+    this.showBackButton = false,
   });
 
   final AppTab selectedTab;
   final String sectionLabel;
+  final bool showBackButton;
 
   Future<void> _goBack(BuildContext context) async {
     final navigator = Navigator.of(context);
@@ -111,9 +116,7 @@ class AppPageHeader extends StatelessWidget {
 
     if (selectedTab != AppTab.dashboard) {
       navigator.pushReplacement(
-        MaterialPageRoute<void>(
-          builder: (context) => const DashboardScreen(),
-        ),
+        MaterialPageRoute<void>(builder: (context) => const DashboardScreen()),
       );
     }
   }
@@ -177,10 +180,10 @@ class AppPageHeader extends StatelessWidget {
       return;
     }
 
-    Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
-      '/login',
-      (route) => false,
-    );
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).pushNamedAndRemoveUntil('/login', (route) => false);
   }
 
   @override
@@ -199,20 +202,22 @@ class AppPageHeader extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        IconButton(
-          tooltip: 'Back',
-          onPressed: () => _goBack(context),
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: AppShell.primary,
-            fixedSize: const Size(38, 38),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        if (showBackButton) ...[
+          IconButton(
+            tooltip: 'Back',
+            onPressed: () => _goBack(context),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: AppShell.primary,
+              fixedSize: const Size(38, 38),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
+            icon: const Icon(Icons.arrow_back_rounded, size: 20),
           ),
-          icon: const Icon(Icons.arrow_back_rounded, size: 20),
-        ),
-        const SizedBox(width: 8),
+          const SizedBox(width: 8),
+        ],
         IconButton(
           tooltip: 'Logout',
           onPressed: () => _confirmLogout(context),
@@ -273,9 +278,9 @@ class AppBottomNav extends StatelessWidget {
       AppTab.profile => const AccountScreen(),
     };
 
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (context) => screen),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (context) => screen));
   }
 
   @override

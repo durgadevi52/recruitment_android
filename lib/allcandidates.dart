@@ -5,10 +5,7 @@ import 'package:recruitment/api.dart';
 import 'package:recruitment/app_shell.dart';
 
 class AllCandidatesScreen extends StatefulWidget {
-  const AllCandidatesScreen({
-    super.key,
-    this.openApplicationId,
-  });
+  const AllCandidatesScreen({super.key, this.openApplicationId});
 
   final int? openApplicationId;
 
@@ -190,7 +187,8 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
         hrUsers = responses[0] as List<LookupOption>;
         applicants = responses[1] as List<ApplicantLookup>;
         if (lockedApplication) {
-          selectedApplicant = findInitialApplicant(applicants) ?? selectedApplicant;
+          selectedApplicant =
+              findInitialApplicant(applicants) ?? selectedApplicant;
         }
       } on ApiException catch (error) {
         submitError = error.message;
@@ -265,7 +263,9 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                   ..hideCurrentSnackBar()
                   ..showSnackBar(
                     SnackBar(
-                      content: Text('Application created for ${created.candidate}'),
+                      content: Text(
+                        'Application created for ${created.candidate}',
+                      ),
                     ),
                   );
                 await _loadInitial();
@@ -313,7 +313,10 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
 
             return Dialog(
               elevation: 0,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 24,
+              ),
               backgroundColor: Colors.transparent,
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 500),
@@ -440,7 +443,9 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                             decoration: BoxDecoration(
                               color: const Color(0xFFF8FAFF),
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: const Color(0xFFE5EAF6)),
+                              border: Border.all(
+                                color: const Color(0xFFE5EAF6),
+                              ),
                             ),
                             child: applicants.isEmpty
                                 ? const Center(
@@ -542,7 +547,8 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                         children: [
                           Expanded(
                             child: FilledButton(
-                              onPressed: submitting ||
+                              onPressed:
+                                  submitting ||
                                       (lockedApplication && loadingLookups)
                                   ? null
                                   : () => submit(),
@@ -623,9 +629,7 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(
-                child: _buildBranchFilter(),
-              ),
+              Expanded(child: _buildBranchFilter()),
               if (AppSession.instance.user?.isHr ?? false) ...[
                 const SizedBox(width: 12),
                 FilterChip(
@@ -664,14 +668,18 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
           ),
           const SizedBox(height: 24),
           if (_loading)
-            const Center(child: Padding(
-              padding: EdgeInsets.all(24),
-              child: CircularProgressIndicator(),
-            ))
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              ),
+            )
           else if (_errorMessage != null)
             _ErrorCard(message: _errorMessage!, onRetry: _loadInitial)
           else if (_applications.isEmpty)
-            _EmptyCard(message: 'No applications found for the current filters.')
+            _EmptyCard(
+              message: 'No applications found for the current filters.',
+            )
           else
             ListView.builder(
               shrinkWrap: true,
@@ -817,30 +825,27 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
   }
 
   List<_StatusChipData> get _statusChips => const [
-        _StatusChipData(label: 'All', value: null),
-        _StatusChipData(label: 'Pre-Screening', value: 'prescreening'),
-        _StatusChipData(label: 'L1', value: 'l1'),
-        _StatusChipData(label: 'L2', value: 'l2'),
-        _StatusChipData(label: 'L3', value: 'l3'),
-        _StatusChipData(label: 'L4', value: 'l4'),
-        _StatusChipData(label: 'Salary', value: 'salary'),
-        _StatusChipData(label: 'Offer Released', value: 'offer_released'),
-        _StatusChipData(label: 'Offer Accepted', value: 'offer_accepted'),
-        _StatusChipData(label: 'Joining Started', value: 'joining_initiated'),
-        _StatusChipData(label: 'Joining Pending', value: 'joining_pending'),
-        _StatusChipData(label: 'Joined', value: 'joined'),
-        _StatusChipData(label: 'Hold', value: 'hold'),
-        _StatusChipData(label: 'Not Responding', value: 'not_responding'),
-        _StatusChipData(label: 'No Vacancy', value: 'no_vacancy'),
-        _StatusChipData(label: 'Rejected', value: 'rejected'),
-      ];
+    _StatusChipData(label: 'All', value: null),
+    _StatusChipData(label: 'Pre-Screening', value: 'prescreening'),
+    _StatusChipData(label: 'L1', value: 'l1'),
+    _StatusChipData(label: 'L2', value: 'l2'),
+    _StatusChipData(label: 'L3', value: 'l3'),
+    _StatusChipData(label: 'L4', value: 'l4'),
+    _StatusChipData(label: 'Salary', value: 'salary'),
+    _StatusChipData(label: 'Offer Released', value: 'offer_released'),
+    _StatusChipData(label: 'Offer Accepted', value: 'offer_accepted'),
+    _StatusChipData(label: 'Joining Started', value: 'joining_initiated'),
+    _StatusChipData(label: 'Joining Pending', value: 'joining_pending'),
+    _StatusChipData(label: 'Joined', value: 'joined'),
+    _StatusChipData(label: 'Hold', value: 'hold'),
+    _StatusChipData(label: 'Not Responding', value: 'not_responding'),
+    _StatusChipData(label: 'No Vacancy', value: 'no_vacancy'),
+    _StatusChipData(label: 'Rejected', value: 'rejected'),
+  ];
 }
 
 class _StatusChipData {
-  const _StatusChipData({
-    required this.label,
-    required this.value,
-  });
+  const _StatusChipData({required this.label, required this.value});
 
   final String label;
   final String? value;
@@ -905,7 +910,10 @@ class _ApplicationCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFE7EAFF),
                         borderRadius: BorderRadius.circular(12),
@@ -940,7 +948,10 @@ class _ApplicationCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF0F1F5),
                   borderRadius: BorderRadius.circular(12),
@@ -962,7 +973,9 @@ class _ApplicationCard extends StatelessWidget {
             runSpacing: 10,
             children: [
               _InfoChip(
-                label: application.gender.isEmpty ? 'Unknown' : application.gender,
+                label: application.gender.isEmpty
+                    ? 'Unknown'
+                    : application.gender,
                 backgroundColor: const Color(0xFFE7EAFF),
                 textColor: const Color(0xFF35478C),
               ),
@@ -1018,7 +1031,8 @@ class _ApplicationDetailScreen extends StatefulWidget {
   final int applicationId;
 
   @override
-  State<_ApplicationDetailScreen> createState() => _ApplicationDetailScreenState();
+  State<_ApplicationDetailScreen> createState() =>
+      _ApplicationDetailScreenState();
 }
 
 class _ApplicationDetailScreenState extends State<_ApplicationDetailScreen> {
@@ -1065,12 +1079,16 @@ class _ApplicationDetailScreenState extends State<_ApplicationDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _detailFuture = AppSession.instance.api.getApplicationDetail(widget.applicationId);
+    _detailFuture = AppSession.instance.api.getApplicationDetail(
+      widget.applicationId,
+    );
   }
 
   Future<void> _reload() async {
     setState(() {
-      _detailFuture = AppSession.instance.api.getApplicationDetail(widget.applicationId);
+      _detailFuture = AppSession.instance.api.getApplicationDetail(
+        widget.applicationId,
+      );
     });
     await _detailFuture;
   }
@@ -1117,6 +1135,7 @@ class _ApplicationDetailScreenState extends State<_ApplicationDetailScreen> {
       title: 'Application Detail',
       subtitle: 'Candidate profile, stages and attachments from live API data.',
       titleTrailing: const AppTopAction(icon: Icons.badge_outlined),
+      showBackButton: true,
       child: FutureBuilder<ApplicationDetail>(
         future: _detailFuture,
         builder: (context, snapshot) {
@@ -1142,8 +1161,14 @@ class _ApplicationDetailScreenState extends State<_ApplicationDetailScreen> {
                     _InfoRow(label: 'Name', value: candidate.name),
                     _InfoRow(label: 'Phone', value: candidate.contactNumber),
                     _InfoRow(label: 'Email', value: candidate.email),
-                    _InfoRow(label: 'Qualification', value: candidate.qualification),
-                    _InfoRow(label: 'Position Applied', value: candidate.positionApplied),
+                    _InfoRow(
+                      label: 'Qualification',
+                      value: candidate.qualification,
+                    ),
+                    _InfoRow(
+                      label: 'Position Applied',
+                      value: candidate.positionApplied,
+                    ),
                     _InfoRow(label: 'Gender', value: candidate.gender),
                     _InfoRow(label: 'Age', value: '${candidate.age ?? '--'}'),
                     _InfoRow(label: 'DOB', value: candidate.dob ?? '--'),
@@ -1313,7 +1338,10 @@ class _StageCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF2EEFF),
                   borderRadius: BorderRadius.circular(999),
@@ -1332,12 +1360,16 @@ class _StageCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             'Completed: ${stage.completedAt ?? '--'}',
-            style: const TextStyle(color: _AllCandidatesScreenState._textSecondary),
+            style: const TextStyle(
+              color: _AllCandidatesScreenState._textSecondary,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             'Done By: ${stage.doneBy ?? '--'}',
-            style: const TextStyle(color: _AllCandidatesScreenState._textSecondary),
+            style: const TextStyle(
+              color: _AllCandidatesScreenState._textSecondary,
+            ),
           ),
           if (stage.remarks != null && stage.remarks!.isNotEmpty) ...[
             const SizedBox(height: 10),
@@ -1418,9 +1450,7 @@ class _DropdownField extends StatelessWidget {
           value: value,
           isExpanded: true,
           decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
           ),
           hint: Text(hint),
           items: items
@@ -1443,10 +1473,7 @@ class _DropdownField extends StatelessWidget {
 }
 
 class _DetailSectionCard extends StatelessWidget {
-  const _DetailSectionCard({
-    required this.title,
-    required this.child,
-  });
+  const _DetailSectionCard({required this.title, required this.child});
 
   final String title;
   final Widget child;
@@ -1504,9 +1531,7 @@ class _InfoRow extends StatelessWidget {
       decoration: BoxDecoration(
         border: isLast
             ? null
-            : const Border(
-                bottom: BorderSide(color: Color(0xFFF0F2F7)),
-              ),
+            : const Border(bottom: BorderSide(color: Color(0xFFF0F2F7))),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1561,9 +1586,7 @@ class _TagInfoRow extends StatelessWidget {
       decoration: BoxDecoration(
         border: isLast
             ? null
-            : const Border(
-                bottom: BorderSide(color: Color(0xFFF0F2F7)),
-              ),
+            : const Border(bottom: BorderSide(color: Color(0xFFF0F2F7))),
       ),
       child: Row(
         children: [
@@ -1599,10 +1622,7 @@ class _TagInfoRow extends StatelessWidget {
 }
 
 class _ErrorCard extends StatelessWidget {
-  const _ErrorCard({
-    required this.message,
-    required this.onRetry,
-  });
+  const _ErrorCard({required this.message, required this.onRetry});
 
   final String message;
   final Future<void> Function() onRetry;
@@ -1618,14 +1638,15 @@ class _ErrorCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Icon(Icons.cloud_off_rounded, size: 42, color: Color(0xFF9AA1B1)),
+          const Icon(
+            Icons.cloud_off_rounded,
+            size: 42,
+            color: Color(0xFF9AA1B1),
+          ),
           const SizedBox(height: 12),
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 12),
-          FilledButton(
-            onPressed: () => onRetry(),
-            child: const Text('Retry'),
-          ),
+          FilledButton(onPressed: () => onRetry(), child: const Text('Retry')),
         ],
       ),
     );

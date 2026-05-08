@@ -13,6 +13,21 @@ class ApiConfig {
     return candidateBaseUrls.first;
   }
 
+  static String resolveFileUrl(String path) {
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+
+    final base = Uri.parse(candidateBaseUrls.first);
+    final origin =
+        '${base.scheme}://${base.host}${base.hasPort ? ':${base.port}' : ''}';
+    final cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    if (cleanPath.startsWith('storage/')) {
+      return '$origin/$cleanPath';
+    }
+    return '$origin/storage/$cleanPath';
+  }
+
   static List<String> get candidateBaseUrls {
     const override = String.fromEnvironment('API_BASE_URL');
     if (override.isNotEmpty) {
@@ -371,7 +386,10 @@ class ApplicationSummary {
     required this.applicantProfileId,
     required this.candidateName,
     required this.contact,
+    required this.email,
     required this.gender,
+    required this.qualification,
+    required this.jobExperience,
     required this.position,
     required this.branch,
     required this.statusCode,
@@ -381,13 +399,17 @@ class ApplicationSummary {
     required this.assignedTo,
     required this.hrManager,
     required this.createdAt,
+    required this.applicationCount,
   });
 
   final int id;
   final int applicantProfileId;
   final String candidateName;
   final String contact;
+  final String email;
   final String gender;
+  final String qualification;
+  final bool jobExperience;
   final String position;
   final String branch;
   final String statusCode;
@@ -397,6 +419,7 @@ class ApplicationSummary {
   final String? assignedTo;
   final String? hrManager;
   final String createdAt;
+  final int applicationCount;
 
   factory ApplicationSummary.fromJson(Map<String, dynamic> json) {
     return ApplicationSummary(
@@ -411,7 +434,10 @@ class ApplicationSummary {
       ),
       candidateName: (json['candidate_name'] ?? '').toString(),
       contact: (json['contact'] ?? '').toString(),
+      email: (json['email'] ?? '').toString(),
       gender: (json['gender'] ?? '').toString(),
+      qualification: (json['qualification'] ?? '').toString(),
+      jobExperience: _readJobExperience(json['job_experience']),
       position: (json['position'] ?? '').toString(),
       branch: (json['branch'] ?? '').toString(),
       statusCode: (json['status_code'] ?? '').toString(),
@@ -421,6 +447,13 @@ class ApplicationSummary {
       assignedTo: json['assigned_to']?.toString(),
       hrManager: json['hr_manager']?.toString(),
       createdAt: (json['created_at'] ?? '').toString(),
+      applicationCount: _readInt(
+        _readFirst(json, const [
+          'application_count',
+          'applications_count',
+          'applications',
+        ]),
+      ),
     );
   }
 }
@@ -525,13 +558,18 @@ class CandidateProfile {
     required this.jobExperience,
     required this.expectedSalary,
     required this.maritalStatus,
+    required this.caste,
+    required this.aadhaarNumber,
     required this.hometown,
     required this.address,
+    required this.permanentAddress,
     required this.languages,
     required this.twoWheeler,
     required this.fourWheeler,
     required this.profilePic,
     required this.resume,
+    required this.documents,
+    required this.preferredBranches,
     required this.appliedAt,
   });
 
@@ -547,39 +585,287 @@ class CandidateProfile {
   final bool jobExperience;
   final String? expectedSalary;
   final String? maritalStatus;
+  final String? caste;
+  final String? aadhaarNumber;
   final String? hometown;
   final String? address;
+  final String? permanentAddress;
   final List<String> languages;
   final bool twoWheeler;
   final bool fourWheeler;
   final String? profilePic;
   final String? resume;
+  final List<CandidateDocument> documents;
+  final List<String> preferredBranches;
   final String? appliedAt;
 
   factory CandidateProfile.fromJson(Map<String, dynamic> json) {
     return CandidateProfile(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      name: (json['name'] ?? '').toString(),
-      dob: json['dob']?.toString(),
+      id: _readInt(
+        _readFirst(json, const ['id', 'applicant_profile_id', 'candidate_id']),
+      ),
+      name:
+          (_readFirst(json, const ['name', 'candidate_name', 'full_name']) ?? '')
+              .toString(),
+      dob:
+          _readFirst(json, const ['dob', 'date_of_birth', 'dateOfBirth'])
+              ?.toString(),
       age: (json['age'] as num?)?.toInt(),
       gender: (json['gender'] ?? '').toString(),
-      contactNumber: (json['contact_number'] ?? '').toString(),
-      email: (json['email'] ?? '').toString(),
-      qualification: (json['qualification'] ?? '').toString(),
-      positionApplied: (json['position_applied'] ?? '').toString(),
-      jobExperience: json['job_experience'] == true,
-      expectedSalary: json['expected_salary']?.toString(),
-      maritalStatus: json['marital_status']?.toString(),
-      hometown: json['hometown']?.toString(),
-      address: json['address']?.toString(),
+      contactNumber:
+          (_readFirst(json, const ['contact_number', 'contact', 'phone']) ?? '')
+              .toString(),
+      email: (_readFirst(json, const ['email', 'email_id']) ?? '').toString(),
+      qualification:
+          (_readFirst(json, const ['qualification', 'education']) ?? '')
+              .toString(),
+      positionApplied:
+          (_readFirst(json, const ['position_applied', 'position']) ?? '')
+              .toString(),
+      jobExperience: _readJobExperience(json['job_experience']),
+      expectedSalary:
+          _readFirst(json, const ['expected_salary', 'expectedSalary'])
+              ?.toString(),
+      maritalStatus:
+          _readFirst(json, const ['marital_status', 'maritalStatus', 'marital'])
+              ?.toString(),
+      caste: _readFirst(json, const ['caste', 'community'])?.toString(),
+      aadhaarNumber:
+          _readFirst(json, const [
+            'aadhaar_number',
+            'aadhar_number',
+            'aadhaar',
+            'aadhar',
+          ])?.toString(),
+      hometown:
+          _readFirst(json, const [
+            'hometown',
+            'home_town',
+            'native_place',
+            'nativePlace',
+            'city',
+          ])?.toString(),
+      address:
+          _readFirst(json, const ['address', 'current_address', 'currentAddress'])
+              ?.toString(),
+      permanentAddress:
+          _readFirst(json, const [
+            'permanent_address',
+            'permanentAddress',
+            'address',
+          ])?.toString(),
       languages: ((json['languages'] as List?) ?? []).map((e) => '$e').toList(),
       twoWheeler: json['two_wheeler'] == true,
       fourWheeler: json['four_wheeler'] == true,
-      profilePic: json['profile_pic']?.toString(),
+      profilePic:
+          _readFirst(json, const [
+            'profile_pic',
+            'profilePic',
+            'photo',
+            'image',
+            'avatar',
+          ])?.toString(),
       resume: json['resume']?.toString(),
+      documents: CandidateDocument.listFromCandidateJson(json),
+      preferredBranches: ((json['preferred_branches'] as List?) ?? [])
+          .map((item) {
+            if (item is Map) {
+              final map = item.cast<String, dynamic>();
+              return (map['name'] ?? map['code'] ?? map['id'] ?? '')
+                  .toString();
+            }
+            return '$item';
+          })
+          .where((item) => item.trim().isNotEmpty)
+          .toList(),
       appliedAt: json['applied_at']?.toString(),
     );
   }
+
+  factory CandidateProfile.fromApplicantLookup(ApplicantLookup candidate) {
+    return CandidateProfile(
+      id: candidate.id,
+      name: candidate.name,
+      dob: candidate.dob,
+      age: candidate.age,
+      gender: candidate.gender,
+      contactNumber: candidate.contactNumber,
+      email: candidate.email,
+      qualification: candidate.qualification,
+      positionApplied: candidate.positionApplied,
+      jobExperience: candidate.jobExperience,
+      expectedSalary: null,
+      maritalStatus: candidate.maritalStatus,
+      caste: candidate.caste,
+      aadhaarNumber: candidate.aadhaarNumber,
+      hometown: candidate.hometown,
+      address: null,
+      permanentAddress: null,
+      languages: const [],
+      twoWheeler: false,
+      fourWheeler: false,
+      profilePic: candidate.profilePic,
+      resume: null,
+      documents: const [],
+      preferredBranches: const [],
+      appliedAt: candidate.appliedAt,
+    );
+  }
+}
+
+class CandidateDocument {
+  const CandidateDocument({
+    required this.title,
+    required this.fileName,
+    required this.filePath,
+    required this.status,
+    required this.isApproved,
+  });
+
+  final String title;
+  final String fileName;
+  final String? filePath;
+  final String status;
+  final bool isApproved;
+
+  static List<CandidateDocument> listFromCandidateJson(
+    Map<String, dynamic> json,
+  ) {
+    final fromArray =
+        ((_readFirst(json, const [
+                  'documents',
+                  'candidate_documents',
+                  'uploaded_documents',
+                ])
+                as List?) ??
+            [])
+        .whereType<Map>()
+        .map((item) => CandidateDocument.fromJson(item.cast<String, dynamic>()))
+        .toList();
+    if (fromArray.isNotEmpty) {
+      return fromArray;
+    }
+
+    const fieldDocuments = [
+      _DocumentField('Bank Book Front Page', [
+        'bank_book_front_page',
+        'bank_book',
+        'bank_passbook',
+        'passbook',
+      ]),
+      _DocumentField('Aadhar Card', [
+        'aadhaar_card',
+        'aadhar_card',
+        'aadhaar_document',
+        'aadhar_document',
+      ]),
+      _DocumentField('PAN Card', [
+        'pan_card',
+        'pan_document',
+        'pan',
+      ]),
+      _DocumentField('Voter ID', [
+        'voter_id',
+        'voter_card',
+        'voter_document',
+      ]),
+      _DocumentField('Driving Licence / LLR', [
+        'driving_licence',
+        'driving_license',
+        'driving_licence_llr',
+        'driving_license_llr',
+        'llr',
+      ]),
+    ];
+
+    return fieldDocuments
+        .map((field) {
+          final path = _readFirst(json, field.keys)?.toString();
+          if (path == null || path.trim().isEmpty) {
+            return null;
+          }
+          return CandidateDocument.fromFile(
+            title: field.title,
+            filePath: path,
+            status: 'approved',
+          );
+        })
+        .whereType<CandidateDocument>()
+        .toList();
+  }
+
+  factory CandidateDocument.fromFile({
+    required String title,
+    required String filePath,
+    String status = '',
+  }) {
+    final approved = status.trim().toLowerCase() == 'approved';
+    return CandidateDocument(
+      title: title,
+      fileName: _fileNameFromPath(filePath),
+      filePath: filePath,
+      status: status,
+      isApproved: approved,
+    );
+  }
+
+  factory CandidateDocument.fromJson(Map<String, dynamic> json) {
+    final path = _readFirst(json, const [
+      'file_path',
+      'path',
+      'url',
+      'file_url',
+      'document',
+    ])?.toString();
+    final fileName =
+        _readFirst(json, const [
+          'file_name',
+          'filename',
+          'original_name',
+          'name',
+        ])?.toString() ??
+        path ??
+        '';
+    final status = (_readFirst(json, const [
+              'status',
+              'approval_status',
+              'verification_status',
+            ]) ??
+            '')
+        .toString();
+    final approvedValue = _readFirst(json, const ['is_approved', 'approved']);
+    final isApproved =
+        approvedValue == true || status.trim().toLowerCase() == 'approved';
+
+    return CandidateDocument(
+      title:
+          (_readFirst(json, const [
+                    'type',
+                    'document_type',
+                    'title',
+                    'label',
+                  ]) ??
+                  fileName)
+              .toString(),
+      fileName: fileName,
+      filePath: path,
+      status: status,
+      isApproved: isApproved,
+    );
+  }
+}
+
+class _DocumentField {
+  const _DocumentField(this.title, this.keys);
+
+  final String title;
+  final List<String> keys;
+}
+
+String _fileNameFromPath(String path) {
+  final normalized = path.replaceAll('\\', '/');
+  final parts = normalized.split('/');
+  return parts.isEmpty ? path : parts.last;
 }
 
 class PositionDetail {
@@ -952,6 +1238,17 @@ class ApplicantLookup {
     required this.email,
     required this.positionApplied,
     required this.qualification,
+    required this.gender,
+    required this.jobExperience,
+    required this.appliedAt,
+    required this.applicationCount,
+    required this.profilePic,
+    this.dob,
+    this.age,
+    this.maritalStatus,
+    this.caste,
+    this.aadhaarNumber,
+    this.hometown,
   });
 
   final int id;
@@ -960,6 +1257,17 @@ class ApplicantLookup {
   final String email;
   final String positionApplied;
   final String qualification;
+  final String gender;
+  final bool jobExperience;
+  final String appliedAt;
+  final int applicationCount;
+  final String? profilePic;
+  final String? dob;
+  final int? age;
+  final String? maritalStatus;
+  final String? caste;
+  final String? aadhaarNumber;
+  final String? hometown;
 
   factory ApplicantLookup.fromJson(Map<String, dynamic> json) {
     return ApplicantLookup(
@@ -969,8 +1277,64 @@ class ApplicantLookup {
       email: (json['email'] ?? '').toString(),
       positionApplied: (json['position_applied'] ?? '').toString(),
       qualification: (json['qualification'] ?? '').toString(),
+      gender: (json['gender'] ?? '').toString(),
+      jobExperience: _readJobExperience(json['job_experience']),
+      appliedAt:
+          _readFirst(json, const ['applied_at', 'created_at', 'createdAt'])
+              ?.toString() ??
+          '',
+      applicationCount: _readInt(
+        _readFirst(json, const [
+          'application_count',
+          'applications_count',
+          'applications',
+        ]),
+      ),
+      profilePic:
+          _readFirst(json, const [
+            'profile_pic',
+            'profilePic',
+            'photo',
+            'image',
+            'avatar',
+          ])?.toString(),
+      dob:
+          _readFirst(json, const ['dob', 'date_of_birth', 'dateOfBirth'])
+              ?.toString(),
+      age: (json['age'] as num?)?.toInt(),
+      maritalStatus:
+          _readFirst(json, const ['marital_status', 'maritalStatus', 'marital'])
+              ?.toString(),
+      caste: _readFirst(json, const ['caste', 'community'])?.toString(),
+      aadhaarNumber:
+          _readFirst(json, const [
+            'aadhaar_number',
+            'aadhar_number',
+            'aadhaar',
+            'aadhar',
+          ])?.toString(),
+      hometown:
+          _readFirst(json, const [
+            'hometown',
+            'home_town',
+            'native_place',
+            'nativePlace',
+            'city',
+          ])?.toString(),
     );
   }
+}
+
+bool _readJobExperience(dynamic value) {
+  if (value == true || value == 1) {
+    return true;
+  }
+  final normalized = value?.toString().trim().toLowerCase() ?? '';
+  return normalized == 'true' ||
+      normalized == 'yes' ||
+      normalized == '1' ||
+      normalized == 'experienced' ||
+      normalized == 'experience';
 }
 
 class CreatedApplication {
@@ -1142,10 +1506,17 @@ class ApiClient {
   }
 
   Future<List<ApplicantLookup>> searchApplicants(String search) async {
+    return getCandidates(search: search);
+  }
+
+  Future<List<ApplicantLookup>> getCandidates({String? search}) async {
     final json = await _request(
       method: 'GET',
       path: '/meta/applicants',
-      query: {if (search.trim().isNotEmpty) 'search': search.trim()},
+      query: {
+        if (search != null && search.trim().isNotEmpty)
+          'search': search.trim(),
+      },
     );
     return ((json['data'] as List?) ?? [])
         .map(
@@ -1154,6 +1525,100 @@ class ApiClient {
           ),
         )
         .toList();
+  }
+
+  Future<CandidateProfile> getCandidateProfile(int id) async {
+    ApiException? lastError;
+    for (final path in [
+      '/meta/applicants/$id',
+      '/applicants/$id',
+      '/applicant-profiles/$id',
+      '/applicant_profiles/$id',
+      '/candidates/$id',
+      '/candidate/$id',
+      '/profiles/$id',
+    ]) {
+      try {
+        final json = await _request(method: 'GET', path: path);
+        return CandidateProfile.fromJson(_extractCandidateMap(json));
+      } on ApiException catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError ?? ApiException('Unable to load candidate profile.');
+  }
+
+  Future<CandidateProfile> getCandidateProfileFromAllCandidates(
+    ApplicantLookup candidate,
+  ) async {
+    if (candidate.id > 0) {
+      try {
+        return await getCandidateProfile(candidate.id);
+      } on ApiException {
+        // Fall back to the applicant lookup endpoint below. Some deployments
+        // only expose `/meta/applicants` for the All Candidates listing.
+      }
+    }
+
+    final query = candidate.contactNumber.trim().isNotEmpty
+        ? candidate.contactNumber
+        : candidate.name;
+    final candidates = await getCandidates(search: query);
+
+    for (final item in candidates) {
+      if (item.id == candidate.id) {
+        return CandidateProfile.fromApplicantLookup(item);
+      }
+    }
+    for (final item in candidates) {
+      if (item.contactNumber.isNotEmpty &&
+          item.contactNumber == candidate.contactNumber) {
+        return CandidateProfile.fromApplicantLookup(item);
+      }
+    }
+    for (final item in candidates) {
+      if (item.name.trim().toLowerCase() ==
+          candidate.name.trim().toLowerCase()) {
+        return CandidateProfile.fromApplicantLookup(item);
+      }
+    }
+    if (candidates.isNotEmpty) {
+      return CandidateProfile.fromApplicantLookup(candidates.first);
+    }
+
+    return CandidateProfile.fromApplicantLookup(candidate);
+  }
+
+  Map<String, dynamic> _extractCandidateMap(Map<String, dynamic> json) {
+    Map<String, dynamic> normalize(dynamic value) {
+      if (value is Map<dynamic, dynamic>) {
+        return value.cast<String, dynamic>();
+      }
+      return <String, dynamic>{};
+    }
+
+    final data = normalize(json['data']);
+    for (final container in [data, json]) {
+      for (final key in const [
+        'candidate',
+        'applicant',
+        'applicant_profile',
+        'applicantProfile',
+        'profile',
+        'user',
+      ]) {
+        final nested = normalize(container[key]);
+        if (nested.isNotEmpty) {
+          return nested;
+        }
+      }
+      if (container.isNotEmpty) {
+        return container;
+      }
+    }
+
+    return json;
   }
 
   Future<CreatedApplication> createApplication(

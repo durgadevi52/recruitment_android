@@ -150,6 +150,8 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
             caste: null,
             aadhaarNumber: null,
             hometown: null,
+            address: null,
+            permanentAddress: null,
           ));
     LookupOption? selectedHrManager;
     LookupOption? selectedAssignedTo;
@@ -1972,6 +1974,10 @@ class _CandidatePreviewShell extends StatelessWidget {
                               _InfoRow(
                                 label: 'Aadhar',
                                 value: aadhaarLabel(profile.aadhaarNumber),
+                              ),
+                              _AddressBlock(
+                                label: 'Permanent Address',
+                                value: value(profile.permanentAddress),
                                 isLast: true,
                               ),
                             ],
@@ -2039,10 +2045,6 @@ class _CandidatePreviewShell extends StatelessWidget {
                           _AddressBlock(
                             label: 'Current Address',
                             value: value(profile.address),
-                          ),
-                          _AddressBlock(
-                            label: 'Permanent Address',
-                            value: value(profile.permanentAddress),
                             isLast: true,
                           ),
                         ],
@@ -2774,34 +2776,16 @@ class _ApplicationDetailScreenState extends State<_ApplicationDetailScreen> {
               const SizedBox(height: 14),
               _DetailSectionCard(
                 title: 'Education & Career',
-                child: Column(
-                  children: [
-                    _InfoRow(
-                      label: 'Qualification',
-                      value: _value(candidate.qualification),
-                    ),
-                    _InfoRow(
-                      label: 'Position Applied',
-                      value: _value(candidate.positionApplied),
-                    ),
-                    _InfoRow(
-                      label: 'Mapped Position',
-                      value: detail.position == null
-                          ? '--'
-                          : '${detail.position!.shortName} - ${detail.position!.fullName}',
-                    ),
-                    _InfoRow(
-                      label: 'Experience',
-                      value: candidate.jobExperience
-                          ? 'Experienced'
-                          : 'Fresher',
-                    ),
-                    _InfoRow(
-                      label: 'Expected Salary',
-                      value: _value(candidate.expectedSalary),
-                      isLast: true,
-                    ),
-                  ],
+                child: _CareerOverview(
+                  qualification: _value(candidate.qualification),
+                  positionApplied: _value(candidate.positionApplied),
+                  mappedPosition: detail.position == null
+                      ? '--'
+                      : '${detail.position!.shortName} - ${detail.position!.fullName}',
+                  experience: candidate.jobExperience
+                      ? 'Experienced'
+                      : 'Fresher',
+                  expectedSalary: _value(candidate.expectedSalary),
                 ),
               ),
               const SizedBox(height: 14),
@@ -3289,6 +3273,181 @@ class _StatusPill extends StatelessWidget {
           fontWeight: FontWeight.w800,
           color: color,
         ),
+      ),
+    );
+  }
+}
+
+class _CareerOverview extends StatelessWidget {
+  const _CareerOverview({
+    required this.qualification,
+    required this.positionApplied,
+    required this.mappedPosition,
+    required this.experience,
+    required this.expectedSalary,
+  });
+
+  final String qualification;
+  final String positionApplied;
+  final String mappedPosition;
+  final String experience;
+  final String expectedSalary;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final twoColumn = constraints.maxWidth >= 560;
+        final positionItems = [
+          _CareerFact(
+            icon: Icons.work_outline_rounded,
+            label: 'Position Applied',
+            value: positionApplied,
+          ),
+          _CareerFact(
+            icon: Icons.badge_outlined,
+            label: 'Mapped Position',
+            value: mappedPosition,
+          ),
+        ];
+        final detailItems = [
+          _CareerFact(
+            icon: Icons.timeline_rounded,
+            label: 'Experience',
+            value: experience,
+          ),
+          _CareerFact(
+            icon: Icons.currency_rupee_rounded,
+            label: 'Expected Salary',
+            value: expectedSalary,
+          ),
+        ];
+
+        return Column(
+          children: [
+            _CareerFact(
+              icon: Icons.school_outlined,
+              label: 'Education Qualification',
+              value: qualification,
+              prominent: true,
+            ),
+            const SizedBox(height: 10),
+            if (twoColumn)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: positionItems[0]),
+                  const SizedBox(width: 10),
+                  Expanded(child: positionItems[1]),
+                ],
+              )
+            else
+              Column(
+                children: [
+                  positionItems[0],
+                  const SizedBox(height: 10),
+                  positionItems[1],
+                ],
+              ),
+            const SizedBox(height: 10),
+            if (twoColumn)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: detailItems[0]),
+                  const SizedBox(width: 10),
+                  Expanded(child: detailItems[1]),
+                ],
+              )
+            else
+              Column(
+                children: [
+                  detailItems[0],
+                  const SizedBox(height: 10),
+                  detailItems[1],
+                ],
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _CareerFact extends StatelessWidget {
+  const _CareerFact({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.prominent = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool prominent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      constraints: BoxConstraints(minHeight: prominent ? 76 : 68),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: prominent ? const Color(0xFFF6F4FF) : const Color(0xFFF8FAFF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: prominent ? const Color(0xFFDCD6FF) : const Color(0xFFE8EDF7),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E6F0)),
+            ),
+            child: Icon(
+              icon,
+              size: 18,
+              color: _AllCandidatesScreenState._accent,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  label.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    letterSpacing: 0.7,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF7C8498),
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  value,
+                  softWrap: true,
+                  style: TextStyle(
+                    fontSize: prominent ? 14 : 13,
+                    height: 1.25,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF232938),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

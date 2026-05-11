@@ -103,6 +103,146 @@ dynamic _readFirst(Map<String, dynamic> json, List<String> keys) {
   return null;
 }
 
+dynamic _readFirstFilled(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    if (!json.containsKey(key) || json[key] == null) {
+      continue;
+    }
+    final value = json[key];
+    if (value is String && value.trim().isEmpty) {
+      continue;
+    }
+    return value;
+  }
+  return null;
+}
+
+String? _readStringFirst(Map<String, dynamic> json, List<String> keys) {
+  final value = _readFirstFilled(json, keys);
+  if (value == null || value is Map || value is List) {
+    return null;
+  }
+  return value.toString();
+}
+
+Map<String, dynamic> _readAddressMap(Map<String, dynamic> json) {
+  for (final key in const [
+    'address',
+    'addresses',
+    'address_details',
+    'address_detail',
+    'candidate_address',
+    'candidateAddress',
+  ]) {
+    final value = json[key];
+    if (value is Map) {
+      return value.cast<String, dynamic>();
+    }
+  }
+  return <String, dynamic>{};
+}
+
+String? _readCurrentAddress(Map<String, dynamic> json) {
+  final addressMap = _readAddressMap(json);
+  return _readStringFirst(json, const [
+        'current_address',
+        'currentAddress',
+        'present_address',
+        'presentAddress',
+        'communication_address',
+        'communicationAddress',
+        'residential_address',
+        'residentialAddress',
+      ]) ??
+      _readStringFirst(addressMap, const [
+        'current_address',
+        'currentAddress',
+        'current',
+        'present_address',
+        'presentAddress',
+        'present',
+        'communication_address',
+        'communicationAddress',
+        'communication',
+        'residential_address',
+        'residentialAddress',
+        'residential',
+        'full_address',
+        'fullAddress',
+        'line',
+      ]) ??
+      _readStringFirst(json, const ['address']);
+}
+
+String? _readPermanentAddress(Map<String, dynamic> json) {
+  final addressMap = _readAddressMap(json);
+  return _readStringFirst(json, const [
+        'permanent_address',
+        'permanentAddress',
+        'permanentaddress',
+        'permanent_adress',
+        'permanentAdress',
+        
+        'permanent_add',
+        'permanentAdd',
+        'permanent_addr',
+        'permanentAddr',
+        'permanent',
+        'address_permanent',
+        'addressPermanent',
+        'permanant_address',
+        'permenant_address',
+      ]) ??
+      _readStringFirst(addressMap, const [
+        'permanent_address',
+        'permanentAddress',
+        'permanentaddress',
+        'permanent_adress',
+        'permanentAdress',
+        'permanent_add',
+        'permanentAdd',
+        'permanent_addr',
+        'permanentAddr',
+        'permanent',
+        'address_permanent',
+        'addressPermanent',
+        'permanant_address',
+        'permenant_address',
+      ]) ??
+      _readStringFirst(json, const ['address']);
+}
+
+Map<String, dynamic> _readCandidateProfilePayload(Map<String, dynamic> json) {
+  final candidate = _readMap(json['candidate']);
+  final merged = <String, dynamic>{};
+
+  for (final key in const [
+    'applicant_profile',
+    'applicantProfile',
+    'applicant',
+    'profile',
+    'candidate_profile',
+    'candidateProfile',
+  ]) {
+    merged.addAll(_readMap(json[key]));
+  }
+
+  merged.addAll(candidate);
+
+  final permanentAddress =
+      _readPermanentAddress(merged) ?? _readPermanentAddress(json);
+  if (permanentAddress != null && permanentAddress.trim().isNotEmpty) {
+    merged['permanent_address'] = permanentAddress;
+  }
+
+  final currentAddress = _readCurrentAddress(merged) ?? _readCurrentAddress(json);
+  if (currentAddress != null && currentAddress.trim().isNotEmpty) {
+    merged['current_address'] = currentAddress;
+  }
+
+  return merged;
+}
+
 class SessionUser {
   const SessionUser({
     required this.id,
@@ -514,7 +654,7 @@ class ApplicationDetail {
       lagDays: json['lag_days'] == null ? null : _readInt(json['lag_days']),
       createdAt: (json['created_at'] ?? '').toString(),
       updatedAt: (json['updated_at'] ?? '').toString(),
-      candidate: CandidateProfile.fromJson(readMap('candidate') ?? {}),
+      candidate: CandidateProfile.fromJson(_readCandidateProfilePayload(json)),
       position: readMap('position') == null
           ? null
           : PositionDetail.fromJson(readMap('position')!),
@@ -645,15 +785,8 @@ class CandidateProfile {
             'nativePlace',
             'city',
           ])?.toString(),
-      address:
-          _readFirst(json, const ['address', 'current_address', 'currentAddress'])
-              ?.toString(),
-      permanentAddress:
-          _readFirst(json, const [
-            'permanent_address',
-            'permanentAddress',
-            'address',
-          ])?.toString(),
+      address: _readCurrentAddress(json),
+      permanentAddress: _readPermanentAddress(json),
       languages: ((json['languages'] as List?) ?? []).map((e) => '$e').toList(),
       twoWheeler: json['two_wheeler'] == true,
       fourWheeler: json['four_wheeler'] == true,
@@ -699,8 +832,8 @@ class CandidateProfile {
       caste: candidate.caste,
       aadhaarNumber: candidate.aadhaarNumber,
       hometown: candidate.hometown,
-      address: null,
-      permanentAddress: null,
+      address: candidate.address,
+      permanentAddress: candidate.permanentAddress,
       languages: const [],
       twoWheeler: false,
       fourWheeler: false,
@@ -1249,6 +1382,8 @@ class ApplicantLookup {
     this.caste,
     this.aadhaarNumber,
     this.hometown,
+    this.address,
+    this.permanentAddress,
   });
 
   final int id;
@@ -1268,6 +1403,8 @@ class ApplicantLookup {
   final String? caste;
   final String? aadhaarNumber;
   final String? hometown;
+  final String? address;
+  final String? permanentAddress;
 
   factory ApplicantLookup.fromJson(Map<String, dynamic> json) {
     return ApplicantLookup(
@@ -1321,6 +1458,8 @@ class ApplicantLookup {
             'nativePlace',
             'city',
           ])?.toString(),
+      address: _readCurrentAddress(json),
+      permanentAddress: _readPermanentAddress(json),
     );
   }
 }

@@ -31,14 +31,17 @@ All request and response bodies are JSON.
    - [4.1 List Applications](#41-list-applications)
    - [4.2 Get Single Application](#42-get-single-application)
    - [4.3 Create New Application](#43-create-new-application)
-5. [Meta / Lookup Endpoints](#5-meta--lookup-endpoints)
-   - [5.1 Get Designations](#51-get-designations-positions)
-   - [5.2 Get Active Branches](#52-get-active-branches)
-   - [5.3 Get HR Users](#53-get-hr-users)
-   - [5.4 Search Applicants](#54-search-applicants)
-6. [Status Codes & Stage Reference](#6-status-codes--stage-reference)
-7. [Global Error Responses](#7-global-error-responses)
-8. [Integration Checklist](#8-integration-checklist)
+5. [Applicants](#5-applicants)
+   - [5.1 List Applicants](#51-list-applicants)
+   - [5.2 Get Applicant Profile](#52-get-applicant-profile)
+6. [Meta / Lookup Endpoints](#6-meta--lookup-endpoints)
+   - [6.1 Get Designations](#61-get-designations-positions)
+   - [6.2 Get Active Branches](#62-get-active-branches)
+   - [6.3 Get HR Users](#63-get-hr-users)
+   - [6.4 Search Applicants](#64-search-applicants-autocomplete)
+7. [Status Codes & Stage Reference](#7-status-codes--stage-reference)
+8. [Global Error Responses](#8-global-error-responses)
+9. [Integration Checklist](#9-integration-checklist)
 
 ---
 
@@ -53,10 +56,12 @@ All request and response bodies are JSON.
 | `GET` | `/api/applications` | Bearer | Paginated applications list |
 | `POST` | `/api/applications` | Bearer (HR only) | Create new application |
 | `GET` | `/api/applications/{id}` | Bearer | Full application detail |
+| `GET` | `/api/applicants` | Bearer (HR only) | Paginated applicant list |
+| `GET` | `/api/applicants/{id}` | Bearer | Full applicant profile |
 | `GET` | `/api/meta/designations` | Bearer | All positions / designations |
 | `GET` | `/api/meta/branches` | Bearer | All active branches |
 | `GET` | `/api/meta/hr-users` | Bearer (HR only) | HR staff list |
-| `GET` | `/api/meta/applicants` | Bearer (HR only) | Search applicant profiles |
+| `GET` | `/api/meta/applicants` | Bearer (HR only) | Search applicants (autocomplete) |
 
 ---
 
@@ -87,7 +92,7 @@ Public endpoint — no token required.
 | `password` | string | Yes | Plain text — hashed server-side |
 
 **Success Response `200`**
-s
+
 ```json
 {
   "success": true,
@@ -640,8 +645,11 @@ Non-HR users can only fetch applications where they are the **current** `assigne
     "joining_form": {
       "id": 88,
       "submitted_at": "2026-04-24 09:00:00",
-      "employee_status": "ACTIVE"
-    }
+      "employee_status": "ACTIVE",
+      "employee_code": "EMP042"
+    },
+
+    "emp_master_deleted": false
   }
 }
 ```
@@ -652,11 +660,12 @@ Non-HR users can only fetch applications where they are the **current** `assigne
 | `deleted` | `true` means soft-deleted — visible only to superadmin |
 | `approved_branch_ids` | Branch IDs approved for this candidate across all stages |
 | `stages` | Ordered array of all stage records from creation to current |
-| `stages[].action_taken` | `created` / `pre_screen_proceed` / `pre_screen_not_responding` / `pre_screen_rejected` / `proceed` / `hold` / `reject` |
+| `stages[].action_taken` | See full table in [§6 Stage Action Reference](#stages-action_taken-values) |
 | `stages[].file_size` | In bytes |
 | `offer_consent` | `null` if no offer has been released yet |
 | `offer_consent.total_releases` | Max allowed is 3 |
-| `joining_form` | `null` if joining form not yet generated |
+| `joining_form` | `null` if not yet generated. Also `null` if a previously submitted joining form was deleted (employee master deletion). Check `emp_master_deleted` flag below |
+| `emp_master_deleted` | `true` if an `employee_master_deleted` stage exists AND no new submitted joining form is present. Indicates HR must re-initiate the joining process. `false` otherwise |
 
 **Error — Not Assigned `403`**
 
@@ -750,7 +759,219 @@ Creates a new application for an existing applicant profile.
 
 ---
 
-## 5. Meta / Lookup Endpoints
+## 5. Applicants
+
+---
+
+### 5.1 List Applicants
+
+```
+GET /api/applicants
+Authorization: Bearer {token}
+```
+
+Paginated list of applicant profiles. **HR roles only.**
+
+**Query Parameters**
+
+| Param | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `search` | string | No | — | Name, mobile, email, or Aadhar number |
+| `gender` | string | No | — | `Male` / `Female` / `Other` |
+| `experience` | string | No | — | `yes` / `no` — filter by job experience flag |
+| `per_page` | integer | No | `25` | Items per page (max `100`) |
+| `page` | integer | No | `1` | Page number |
+
+**Success Response `200`**
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": 145,
+        "name": "Ravi Shankar",
+        "contact_number": "9876543210",
+        "email": "ravi@gmail.com",
+        "gender": "Male",
+        "qualification": "B.Com",
+        "position_applied": "Branch Manager",
+        "job_experience": true,
+        "profile_pic": "profiles/ravi_pic.jpg",
+        "applications_count": 2,
+        "applied_at": "2026-04-19 08:45:00"
+      }
+    ],
+    "current_page": 1,
+    "last_page": 6,
+    "per_page": 25,
+    "total": 140
+  }
+}
+```
+
+**Error — Non-HR `403`**
+
+```json
+{
+  "success": false,
+  "message": "Access denied. HR role required."
+}
+```
+
+---
+
+### 5.2 Get Applicant Profile
+
+```
+GET /api/applicants/{id}
+Authorization: Bearer {token}
+```
+
+Full applicant profile including education, employment history, documents, and linked applications.
+
+**HR users** can access any profile. **Non-HR users** can only access profiles linked to applications where they are the current `assigned_to` user or a stage interviewer.
+
+**URL Parameter**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Applicant profile ID |
+
+**Success Response `200`**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 145,
+    "name": "Ravi Shankar",
+    "contact_number": "9876543210",
+    "email": "ravi@gmail.com",
+    "gender": "Male",
+    "dob": "1998-06-15",
+    "age": 27,
+    "marital_status": "Single",
+    "caste": "OC",
+    "hometown": "Madurai",
+    "aadhar_number": "452145214521",
+
+    "address": {
+      "line1": "12 Gandhi Rd",
+      "line2": null,
+      "city": "Madurai",
+      "district": "Madurai",
+      "state": "Tamil Nadu",
+      "pincode": "625001"
+    },
+
+    "profile_pic": "profiles/ravi_pic.jpg",
+    "resume": "resumes/ravi_resume.pdf",
+
+    "education": {
+      "qualification": "B.Com",
+      "date_of_passout": "2020-05-01",
+      "rows": [
+        { "level": 1, "qualification": "10th", "year": "2016", "percentage": "82%" },
+        { "level": 2, "qualification": "12th", "year": "2018", "percentage": "76%" },
+        { "level": 3, "qualification": "B.Com", "year": "2020", "percentage": "71%" }
+      ]
+    },
+
+    "employment": {
+      "job_experience": true,
+      "iibf_certified": false,
+      "system_knowledge": "MS Office, Tally",
+      "timing_joining": "Immediate",
+      "expected_salary": "18000",
+      "position_applied": "Branch Manager",
+      "experience_rows": [
+        {
+          "index": 1,
+          "company": "ABC Finance Ltd",
+          "designation": "Branch Executive",
+          "from": "Jan 2021",
+          "to": "Mar 2024",
+          "salary": "15000"
+        }
+      ],
+      "reason_relieving": "Better opportunity"
+    },
+
+    "languages": ["Tamil", "English"],
+
+    "mobility": {
+      "two_wheeler": "Own",
+      "four_wheeler": "None",
+      "willing_outside": true
+    },
+
+    "source": {
+      "external_source": "PAT Employee Reference (EMP010)",
+      "reference_details": "Referred by branch staff"
+    },
+
+    "preferred_branch_ids": [7, 12],
+
+    "documents": [
+      {
+        "id": 22,
+        "type": "Aadhar Card",
+        "file_path": "docs/aadhar_ravi.pdf",
+        "status": "approved",
+        "reviewed_by": "John Kumar",
+        "uploaded_at": "2026-04-19 09:00:00"
+      }
+    ],
+
+    "applications": [
+      {
+        "id": 201,
+        "position": "BM",
+        "branch": "Madurai North",
+        "status_code": "01",
+        "status_label": "Level-1 Completed",
+        "stage": 1,
+        "created_at": "2026-04-20"
+      }
+    ],
+
+    "applied_at": "2026-04-19 08:45:00"
+  }
+}
+```
+
+| Field | Notes |
+|-------|-------|
+| `aadhar_number` | Full 12-digit Aadhar number (HR-only endpoint — protected by auth) |
+| `education.rows` | Structured from `education_details`. Empty array if only `qualification` field is set |
+| `employment.experience_rows` | Structured from `experience_details`. Empty array if no experience or details not yet parsed |
+| `mobility.two_wheeler` | `None` / `Drive` / `Own` |
+| `mobility.four_wheeler` | `None` / `Drive` / `Own` |
+| `documents[].status` | `pending` / `approved` / `rejected` |
+| `applications` | Summary list of all linked applications for this candidate |
+
+**Error — Forbidden `403`**
+
+```json
+{
+  "success": false,
+  "message": "You do not have access to this applicant profile."
+}
+```
+
+**Error — Not Found `404`**
+
+```json
+{
+  "message": "No query results for model [App\\Models\\ApplicantProfile] 999"
+}
+```
+
+---
+
+## 6. Meta / Lookup Endpoints
 
 These endpoints supply dropdown and autocomplete data for the Create Application form.
 `meta/designations` and `meta/branches` require a Bearer token.
@@ -758,7 +979,7 @@ These endpoints supply dropdown and autocomplete data for the Create Application
 
 ---
 
-### 5.1 Get Designations (Positions)
+### 6.1 Get Designations (Positions)
 
 ```
 GET /api/meta/designations
@@ -795,7 +1016,7 @@ Authorization: Bearer {token}
 
 ---
 
-### 5.2 Get Active Branches
+### 6.2 Get Active Branches
 
 ```
 GET /api/meta/branches
@@ -834,7 +1055,7 @@ Authorization: Bearer {token}
 
 ---
 
-### 5.3 Get HR Users
+### 6.3 Get HR Users
 
 ```
 GET /api/meta/hr-users
@@ -868,7 +1089,7 @@ Use for the **HR Manager** and **Assigned To** dropdowns.
 
 ---
 
-### 5.4 Search Applicants
+### 6.4 Search Applicants (Autocomplete)
 
 ```
 GET /api/meta/applicants?search={query}
@@ -918,7 +1139,7 @@ GET /api/meta/applicants?search=ravi
 
 ---
 
-## 6. Status Codes & Stage Reference
+## 7. Status Codes & Stage Reference
 
 ---
 
@@ -933,7 +1154,7 @@ GET /api/meta/applicants?search=ravi
 | `04` | Salary Finalisation Completed |
 | `05` | Offer letter released |
 | `06` | Offer letter accepted |
-| `07` | Candidate yet to Join |
+| `07` | Candidate yet to Join (joining form sent, or re-initiation required after employee master deletion — check `emp_master_deleted`) |
 | `08` | Candidate on Hold |
 | `09` | Candidate Joined |
 | `10` | Not Responding |
@@ -970,13 +1191,27 @@ GET /api/meta/applicants?search=ravi
 | Value | Meaning |
 |-------|---------|
 | `created` | Application was created |
-| `pre_screen_proceed` | Pre-screening passed |
+| `pre_screen_proceed` | Pre-screening passed — L1 started |
 | `pre_screen_not_responding` | Marked not responding during pre-screen |
 | `pre_screen_rejected` | Rejected during pre-screen |
 | `pre_screen_no_vacancy` | No vacancy at pre-screen |
 | `proceed` | Stage passed — moved to next level |
 | `hold` | Candidate placed on hold |
 | `reject` | Candidate rejected at this stage |
+| `not_responding` | Candidate not responding |
+| `no_vacancy` | No vacancy at this stage |
+| `salary_finalised` | Salary negotiation completed (L4) |
+| `offer_released` | Offer letter sent to candidate |
+| `offer_accepted` | Candidate accepted the offer |
+| `offer_rejected_by_applicant` | Candidate rejected the offer |
+| `offer_link_regenerated` | Consent link re-sent after expiry or rejection |
+| `joining_form_generated` | Joining form link sent to candidate |
+| `joining_form_submitted` | Candidate submitted the joining form |
+| `joined` | HR confirmed joining — employee code assigned |
+| `employee_master_deleted` | Superadmin deleted the employee master record. Status reverted to `07`. HR must re-generate the joining form |
+| `document_uploaded` | An attachment was added to this stage |
+| `deactivated` | Application was soft-deleted |
+| `restored` | Soft-deleted application was restored |
 
 ---
 
@@ -994,8 +1229,10 @@ GET /api/meta/applicants?search=ravi
 
 | Value | Meaning |
 |-------|---------|
-| `ACTIVE` | Currently active employee |
-| `NOTICE_PERIOD` | Serving notice period |
+| `null` | Submitted but not yet verified by HR |
+| `ACTIVE` | Verified — currently active employee |
+| `INACTIVE` | Employee has left the organisation |
+| `NOTICE_PERIOD` | Currently serving notice period |
 
 ---
 
@@ -1009,7 +1246,7 @@ GET /api/meta/applicants?search=ravi
 
 ---
 
-## 7. Global Error Responses
+## 8. Global Error Responses
 
 | HTTP Code | Meaning | Example Body |
 |-----------|---------|--------------|
@@ -1021,7 +1258,7 @@ GET /api/meta/applicants?search=ravi
 
 ---
 
-## 8. Integration Checklist
+## 9. Integration Checklist
 
 ```
 Authentication
@@ -1066,6 +1303,34 @@ Application Detail Screen
     → Display offer consent status badge
     → Display joining form status if present
     → Show/hide HR action buttons based on is_hr flag
+    → If emp_master_deleted = true (status_code = "07", joining_form = null):
+        Show red warning banner: "Employee master record deleted — joining process must be re-initiated"
+        HR users: show "Re-generate Joining Form" action button
+    → If emp_master_deleted = false and stages contain action_taken = "employee_master_deleted":
+        Show muted audit note: "Employee master was previously deleted and subsequently re-initiated"
+    → stage action_taken = "joined" → show employee code from joining_form if available
+
+──────────────────────────────────────────────────
+
+Applicants List Screen  (show only if is_hr = true)
+  ✓ GET  /api/applicants
+    → Default load (no filters)
+    → Implement search bar using ?search= param
+    → Implement gender / experience filters
+    → Implement pagination when scrolling
+
+──────────────────────────────────────────────────
+
+Applicant Profile Screen
+  ✓ GET  /api/applicants/{id}
+    → Display personal / contact / address info
+    → Render education.rows table (fallback to qualification field if rows is empty)
+    → Render employment.experience_rows table if job_experience = true
+    → Show mobility badges (two_wheeler / four_wheeler / willing_outside)
+    → Show documents checklist with status badges (pending / approved / rejected)
+    → List linked applications with tap-to-detail navigation
+    → Show source / referral info if present
+    → Display full aadhar_number (12 digits) — endpoint is HR-auth protected
 
 ──────────────────────────────────────────────────
 
@@ -1075,8 +1340,9 @@ Create Application Screen  (show only if is_hr = true)
   ✓ GET  /api/meta/branches       → Branch dropdown
   ✓ GET  /api/meta/hr-users       → HR Manager + Assigned To dropdowns
 
-  Applicant search field:
+  Applicant search field (two options):
   ✓ GET  /api/meta/applicants?search=  → Autocomplete as user types (debounce 300ms)
+  ✓ GET  /api/applicants/{id}          → Tap result to load full profile before confirming selection
 
   On submit:
   ✓ POST /api/applications
@@ -1094,4 +1360,4 @@ Profile Screen
 
 ---
 
-*Generated for PAFT HRMS Recruitment Portal — April 2026*
+*Generated for PAFT HRMS Recruitment Portal — May 2026*

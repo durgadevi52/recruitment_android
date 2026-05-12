@@ -125,6 +125,286 @@ String? _readStringFirst(Map<String, dynamic> json, List<String> keys) {
   return value.toString();
 }
 
+dynamic _readFirstFromMaps(
+  List<Map<String, dynamic>> maps,
+  List<String> keys,
+) {
+  for (final map in maps) {
+    final value = _readFirstFilled(map, keys);
+    if (value != null) {
+      return value;
+    }
+  }
+  return null;
+}
+
+String? _readAadhaarNumber(Map<String, dynamic> json) {
+  String normalizeKey(String value) {
+    return value.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
+  }
+
+  bool isAadhaarKey(String key) {
+    final normalized = normalizeKey(key);
+    if (normalized.contains('card') ||
+        normalized.contains('document') ||
+        normalized.contains('file') ||
+        normalized.contains('path') ||
+        normalized.contains('url')) {
+      return false;
+    }
+    return normalized.contains('aadhaar') ||
+        normalized.contains('aadhar') ||
+        normalized.contains('adhar');
+  }
+
+  bool isNumberKey(String key) {
+    final normalized = normalizeKey(key);
+    return normalized == 'number' ||
+        normalized == 'no' ||
+        normalized == 'num' ||
+        normalized == 'value' ||
+        normalized == 'id';
+  }
+
+  String? readRecursive(
+    dynamic value, {
+    String? key,
+    bool aadhaarContext = false,
+    int depth = 0,
+  }) {
+    if (value == null || depth > 6) {
+      return null;
+    }
+
+    final keyIsAadhaar = key != null && isAadhaarKey(key);
+    if (value is! Map && value is! List) {
+      if (keyIsAadhaar || (aadhaarContext && key != null && isNumberKey(key))) {
+        return value.toString();
+      }
+      return null;
+    }
+
+    if (value is Map) {
+      final map = value.cast<String, dynamic>();
+      for (final entry in map.entries) {
+        final found = readRecursive(
+          entry.value,
+          key: entry.key,
+          aadhaarContext: aadhaarContext || keyIsAadhaar,
+          depth: depth + 1,
+        );
+        if (found != null && found.isNotEmpty) {
+          return found;
+        }
+      }
+    }
+
+    if (value is List) {
+      for (final item in value) {
+        final found = readRecursive(
+          item,
+          aadhaarContext: aadhaarContext || keyIsAadhaar,
+          depth: depth + 1,
+        );
+        if (found != null && found.isNotEmpty) {
+          return found;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  return readRecursive(json);
+}
+
+String? _readIibfCertified(Map<String, dynamic> json) {
+  final direct = _readFirst(json, const [
+    'iibf_certified',
+    'iibfCertified',
+    'iibf_certificate',
+    'iibfCertificate',
+    'iibf_certification',
+    'iibfCertification',
+    'iibf_status',
+    'iibfStatus',
+    'is_iibf_certified',
+    'isIibfCertified',
+    'iibf',
+  ]);
+  final directValue = _readYesNo(direct);
+  if (directValue != null) {
+    return directValue;
+  }
+
+  for (final key in const [
+    'iibf',
+    'iibf_details',
+    'iibfDetails',
+    'certification',
+    'certifications',
+    'certificate',
+    'certificates',
+  ]) {
+    final nested = _readMap(json[key]);
+    if (nested.isEmpty) {
+      continue;
+    }
+    final nestedValue = _readYesNo(
+      _readFirst(nested, const [
+        'certified',
+        'is_certified',
+        'isCertified',
+        'status',
+        'value',
+        'iibf_certified',
+        'iibfCertified',
+      ]),
+    );
+    if (nestedValue != null) {
+      return nestedValue;
+    }
+  }
+
+  return null;
+}
+
+String? _readJoinedAddressParts(Map<String, dynamic> json) {
+  final parts = [
+    _readStringFirst(json, const [
+      'permanent_address_line1',
+      'permanentAddressLine1',
+      'permant_address_line1',
+      'permantAddressLine1',
+      'permant_line1',
+      'permantLine1',
+      'permanent_line1',
+      'permanentLine1',
+      'address_line1',
+      'address_line_1',
+      'addressLine1',
+      'address1',
+      'addr1',
+      'line1',
+    ]),
+    _readStringFirst(json, const [
+      'permanent_address_line2',
+      'permanentAddressLine2',
+      'permant_address_line2',
+      'permantAddressLine2',
+      'permant_line2',
+      'permantLine2',
+      'permanent_line2',
+      'permanentLine2',
+      'address_line2',
+      'address_line_2',
+      'addressLine2',
+      'address2',
+      'addr2',
+      'line2',
+    ]),
+    _readStringFirst(json, const [
+      'permanent_address_city',
+      'permanentAddressCity',
+      'permant_address_city',
+      'permantAddressCity',
+      'permant_city',
+      'permantCity',
+      'permanent_city',
+      'permanentCity',
+      'address_city',
+      'addressCity',
+      'city',
+      'town',
+    ]),
+    _readStringFirst(json, const [
+      'permanent_address_district',
+      'permanentAddressDistrict',
+      'permant_address_district',
+      'permantAddressDistrict',
+      'permant_district',
+      'permantDistrict',
+      'permanent_district',
+      'permanentDistrict',
+      'address_district',
+      'addressDistrict',
+      'district',
+    ]),
+    _readStringFirst(json, const [
+      'permanent_address_state',
+      'permanentAddressState',
+      'permant_address_state',
+      'permantAddressState',
+      'permant_state',
+      'permantState',
+      'permanent_state',
+      'permanentState',
+      'address_state',
+      'addressState',
+      'state',
+    ]),
+    _readStringFirst(json, const [
+      'permanent_address_pincode',
+      'permanentAddressPincode',
+      'permant_address_pincode',
+      'permantAddressPincode',
+      'permant_pincode',
+      'permantPincode',
+      'permant_pin_code',
+      'permantPinCode',
+      'permanent_pincode',
+      'permanentPincode',
+      'permanent_pin_code',
+      'permanentPinCode',
+      'address_pincode',
+      'addressPincode',
+      'pincode',
+      'pin_code',
+      'postal_code',
+      'zip',
+    ]),
+  ];
+
+  final cleaned = parts
+      .whereType<String>()
+      .where((part) => part.isNotEmpty)
+      .toList();
+  if (cleaned.isEmpty) {
+    return null;
+  }
+  return cleaned.join(', ');
+}
+
+String? _readAddressParts(Map<String, dynamic> json) {
+  final parts = [
+    _readStringFirst(json, const ['line1', 'address_line1', 'addressLine1']),
+    _readStringFirst(json, const ['line2', 'address_line2', 'addressLine2']),
+    _readStringFirst(json, const ['city', 'address_city', 'addressCity']),
+    _readStringFirst(json, const [
+      'district',
+      'address_district',
+      'addressDistrict',
+    ]),
+    _readStringFirst(json, const ['state', 'address_state', 'addressState']),
+    _readStringFirst(json, const [
+      'pincode',
+      'pin_code',
+      'postal_code',
+      'address_pincode',
+      'addressPincode',
+    ]),
+  ];
+
+  final cleaned = parts
+      .whereType<String>()
+      .where((part) => part.isNotEmpty)
+      .toList();
+  if (cleaned.isEmpty) {
+    return null;
+  }
+  return cleaned.join(', ');
+}
+
 Map<String, dynamic> _readAddressMap(Map<String, dynamic> json) {
   for (final key in const [
     'address',
@@ -171,6 +451,7 @@ String? _readCurrentAddress(Map<String, dynamic> json) {
         'fullAddress',
         'line',
       ]) ??
+      _readAddressParts(addressMap) ??
       _readStringFirst(json, const ['address']);
 }
 
@@ -182,16 +463,27 @@ String? _readPermanentAddress(Map<String, dynamic> json) {
         'permanentaddress',
         'permanent_adress',
         'permanentAdress',
-        
         'permanent_add',
         'permanentAdd',
         'permanent_addr',
         'permanentAddr',
+        'permant_address',
+        'permantAddress',
+        'permantaddress',
+        'permant_adress',
+        'permantAdress',
+        'permant_add',
+        'permantAdd',
+        'permant_addr',
+        'permantAddr',
+        'permant',
         'permanent',
         'address_permanent',
         'addressPermanent',
         'permanant_address',
+        'permanantAddress',
         'permenant_address',
+        'permenantAddress',
       ]) ??
       _readStringFirst(addressMap, const [
         'permanent_address',
@@ -203,13 +495,28 @@ String? _readPermanentAddress(Map<String, dynamic> json) {
         'permanentAdd',
         'permanent_addr',
         'permanentAddr',
+        'permant_address',
+        'permantAddress',
+        'permantaddress',
+        'permant_adress',
+        'permantAdress',
+        'permant_add',
+        'permantAdd',
+        'permant_addr',
+        'permantAddr',
+        'permant',
         'permanent',
         'address_permanent',
         'addressPermanent',
         'permanant_address',
+        'permanantAddress',
         'permenant_address',
+        'permenantAddress',
       ]) ??
-      _readStringFirst(json, const ['address']);
+      _readJoinedAddressParts(json) ??
+      _readJoinedAddressParts(addressMap) ??
+      _readAddressParts(addressMap) ??
+      _readStringFirst(json, const ['address', 'full_address', 'fullAddress']);
 }
 
 Map<String, dynamic> _readCandidateProfilePayload(Map<String, dynamic> json) {
@@ -223,20 +530,41 @@ Map<String, dynamic> _readCandidateProfilePayload(Map<String, dynamic> json) {
     'profile',
     'candidate_profile',
     'candidateProfile',
+    'personal_details',
+    'personalDetails',
+    'candidate_details',
+    'candidateDetails',
+    'applicant_details',
+    'applicantDetails',
+    'details',
   ]) {
     merged.addAll(_readMap(json[key]));
   }
 
   merged.addAll(candidate);
+  if (merged.isEmpty) {
+    merged.addAll(json);
+  }
 
   final permanentAddress =
       _readPermanentAddress(merged) ?? _readPermanentAddress(json);
-  if (permanentAddress != null && permanentAddress.trim().isNotEmpty) {
+  if (permanentAddress != null && permanentAddress.isNotEmpty) {
     merged['permanent_address'] = permanentAddress;
   }
 
+  final aadhaarNumber = _readAadhaarNumber(merged) ?? _readAadhaarNumber(json);
+  if (aadhaarNumber != null && aadhaarNumber.isNotEmpty) {
+    merged['aadhar_number'] = aadhaarNumber;
+  }
+
+  final iibfCertified =
+      _readIibfCertified(merged) ?? _readIibfCertified(json);
+  if (iibfCertified != null && iibfCertified.isNotEmpty) {
+    merged['iibf_certified'] = iibfCertified;
+  }
+
   final currentAddress = _readCurrentAddress(merged) ?? _readCurrentAddress(json);
-  if (currentAddress != null && currentAddress.trim().isNotEmpty) {
+  if (currentAddress != null && currentAddress.isNotEmpty) {
     merged['current_address'] = currentAddress;
   }
 
@@ -520,6 +848,38 @@ class ApplicationPage {
   }
 }
 
+class ApplicantPage {
+  const ApplicantPage({
+    required this.items,
+    required this.currentPage,
+    required this.lastPage,
+    required this.perPage,
+    required this.total,
+  });
+
+  final List<ApplicantLookup> items;
+  final int currentPage;
+  final int lastPage;
+  final int perPage;
+  final int total;
+
+  factory ApplicantPage.fromJson(Map<String, dynamic> json) {
+    return ApplicantPage(
+      items: ((json['items'] as List?) ?? [])
+          .map(
+            (item) => ApplicantLookup.fromJson(
+              (item as Map<dynamic, dynamic>).cast<String, dynamic>(),
+            ),
+          )
+          .toList(),
+      currentPage: _readInt(json['current_page'], fallback: 1),
+      lastPage: _readInt(json['last_page'], fallback: 1),
+      perPage: _readInt(json['per_page'], fallback: 25),
+      total: _readInt(json['total']),
+    );
+  }
+}
+
 class ApplicationSummary {
   const ApplicationSummary({
     required this.id,
@@ -694,9 +1054,14 @@ class CandidateProfile {
     required this.contactNumber,
     required this.email,
     required this.qualification,
+    required this.educationDetails,
+    required this.dateOfPassout,
     required this.positionApplied,
     required this.jobExperience,
     required this.expectedSalary,
+    required this.timingJoining,
+    required this.systemKnowledge,
+    required this.iibfCertified,
     required this.maritalStatus,
     required this.caste,
     required this.aadhaarNumber,
@@ -721,9 +1086,14 @@ class CandidateProfile {
   final String contactNumber;
   final String email;
   final String qualification;
+  final List<EducationDetail> educationDetails;
+  final String? dateOfPassout;
   final String positionApplied;
   final bool jobExperience;
   final String? expectedSalary;
+  final String? timingJoining;
+  final String? systemKnowledge;
+  final String? iibfCertified;
   final String? maritalStatus;
   final String? caste;
   final String? aadhaarNumber;
@@ -740,6 +1110,11 @@ class CandidateProfile {
   final String? appliedAt;
 
   factory CandidateProfile.fromJson(Map<String, dynamic> json) {
+    final education = _readMap(json['education']);
+    final employment = _readMap(json['employment']);
+    final mobility = _readMap(json['mobility']);
+    final readableMaps = [json, education, employment, mobility];
+
     return CandidateProfile(
       id: _readInt(
         _readFirst(json, const ['id', 'applicant_profile_id', 'candidate_id']),
@@ -757,26 +1132,53 @@ class CandidateProfile {
               .toString(),
       email: (_readFirst(json, const ['email', 'email_id']) ?? '').toString(),
       qualification:
-          (_readFirst(json, const ['qualification', 'education']) ?? '')
+          (_readFirstFromMaps(readableMaps, const [
+                'qualification',
+                'education',
+              ]) ??
+              '')
               .toString(),
-      positionApplied:
-          (_readFirst(json, const ['position_applied', 'position']) ?? '')
-              .toString(),
-      jobExperience: _readJobExperience(json['job_experience']),
-      expectedSalary:
-          _readFirst(json, const ['expected_salary', 'expectedSalary'])
+      educationDetails: EducationDetail.listFromJson(json),
+      dateOfPassout:
+          _readFirstFromMaps(readableMaps, const [
+                'date_of_passout',
+                'dateOfPassout',
+              ])
               ?.toString(),
+      positionApplied:
+          (_readFirstFromMaps(readableMaps, const [
+                'position_applied',
+                'position',
+              ]) ??
+              '')
+              .toString(),
+      jobExperience: _readJobExperience(
+        _readFirstFromMaps(readableMaps, const ['job_experience']),
+      ),
+      expectedSalary:
+          _readFirstFromMaps(readableMaps, const [
+                'expected_salary',
+                'expectedSalary',
+              ])
+              ?.toString(),
+      timingJoining:
+          _readFirstFromMaps(readableMaps, const [
+                'timing_joining',
+                'timingJoining',
+              ])
+              ?.toString(),
+      systemKnowledge:
+          _readFirstFromMaps(readableMaps, const [
+                'system_knowledge',
+                'systemKnowledge',
+              ])
+              ?.toString(),
+      iibfCertified: _readIibfCertified(json),
       maritalStatus:
           _readFirst(json, const ['marital_status', 'maritalStatus', 'marital'])
               ?.toString(),
       caste: _readFirst(json, const ['caste', 'community'])?.toString(),
-      aadhaarNumber:
-          _readFirst(json, const [
-            'aadhaar_number',
-            'aadhar_number',
-            'aadhaar',
-            'aadhar',
-          ])?.toString(),
+      aadhaarNumber: _readAadhaarNumber(json),
       hometown:
           _readFirst(json, const [
             'hometown',
@@ -788,8 +1190,18 @@ class CandidateProfile {
       address: _readCurrentAddress(json),
       permanentAddress: _readPermanentAddress(json),
       languages: ((json['languages'] as List?) ?? []).map((e) => '$e').toList(),
-      twoWheeler: json['two_wheeler'] == true,
-      fourWheeler: json['four_wheeler'] == true,
+      twoWheeler: _readVehicleAvailable(
+        _readFirstFromMaps(readableMaps, const [
+          'two_wheeler',
+          'twoWheeler',
+        ]),
+      ),
+      fourWheeler: _readVehicleAvailable(
+        _readFirstFromMaps(readableMaps, const [
+          'four_wheeler',
+          'fourWheeler',
+        ]),
+      ),
       profilePic:
           _readFirst(json, const [
             'profile_pic',
@@ -825,9 +1237,14 @@ class CandidateProfile {
       contactNumber: candidate.contactNumber,
       email: candidate.email,
       qualification: candidate.qualification,
+      educationDetails: const [],
+      dateOfPassout: null,
       positionApplied: candidate.positionApplied,
       jobExperience: candidate.jobExperience,
       expectedSalary: null,
+      timingJoining: null,
+      systemKnowledge: null,
+      iibfCertified: null,
       maritalStatus: candidate.maritalStatus,
       caste: candidate.caste,
       aadhaarNumber: candidate.aadhaarNumber,
@@ -1443,13 +1860,7 @@ class ApplicantLookup {
           _readFirst(json, const ['marital_status', 'maritalStatus', 'marital'])
               ?.toString(),
       caste: _readFirst(json, const ['caste', 'community'])?.toString(),
-      aadhaarNumber:
-          _readFirst(json, const [
-            'aadhaar_number',
-            'aadhar_number',
-            'aadhaar',
-            'aadhar',
-          ])?.toString(),
+      aadhaarNumber: _readAadhaarNumber(json),
       hometown:
           _readFirst(json, const [
             'hometown',
@@ -1474,6 +1885,533 @@ bool _readJobExperience(dynamic value) {
       normalized == '1' ||
       normalized == 'experienced' ||
       normalized == 'experience';
+}
+
+bool _readVehicleAvailable(dynamic value) {
+  if (value == true || value == 1) {
+    return true;
+  }
+  final normalized = value?.toString().trim().toLowerCase() ?? '';
+  return normalized == 'true' ||
+      normalized == 'yes' ||
+      normalized == '1' ||
+      normalized == 'own' ||
+      normalized == 'available';
+}
+
+String? _readYesNo(dynamic value) {
+  if (value == null) {
+    return null;
+  }
+  if (value == true || value == 1) {
+    return 'Yes';
+  }
+  if (value == false || value == 0) {
+    return 'No';
+  }
+  final text = value.toString();
+  final normalized = text.trim().toLowerCase();
+  if (normalized.isEmpty) {
+    return null;
+  }
+  if (normalized == 'true' || normalized == 'yes' || normalized == '1') {
+    return 'Yes';
+  }
+  if (normalized == 'false' || normalized == 'no' || normalized == '0') {
+    return 'No';
+  }
+  return text;
+}
+
+class EducationDetail {
+  const EducationDetail({
+    required this.qualification,
+    required this.year,
+    required this.score,
+  });
+
+  final String qualification;
+  final String year;
+  final String score;
+
+  static List<EducationDetail> listFromJson(Map<String, dynamic> json) {
+    final educationMap = _readMap(json['education']);
+    final educationRows = _normalizeRows(
+      _readFirst(educationMap, const ['rows', 'education_rows', 'items']),
+    ).map(_fromMap).where((item) {
+      return item.qualification.isNotEmpty ||
+          item.year.isNotEmpty ||
+          item.score.isNotEmpty;
+    }).toList();
+    if (educationRows.isNotEmpty) {
+      return educationRows;
+    }
+
+    final raw = _readFirst(json, const [
+      'education_details',
+      'educationDetails',
+      'educations',
+      'education',
+      'qualification_details',
+      'qualificationDetails',
+      'qualifications',
+    ]);
+    final items = _normalizeRows(raw).map(_fromMap).where((item) {
+      return item.qualification.isNotEmpty ||
+          item.year.isNotEmpty ||
+          item.score.isNotEmpty;
+    }).toList();
+
+    for (final item in _rootEducationRows(json)) {
+      final exists = items.any(
+        (existing) =>
+            existing.qualification.trim().toLowerCase() ==
+            item.qualification.trim().toLowerCase(),
+      );
+      if (!exists) {
+        items.add(item);
+      }
+    }
+
+    return items;
+  }
+
+  static List<EducationDetail> _rootEducationRows(Map<String, dynamic> json) {
+    return _groupedEducationRows(json);
+  }
+
+  static List<EducationDetail> _groupedEducationRows(Map<String, dynamic> json) {
+    EducationDetail row({
+      required String qualification,
+      required List<String> yearKeys,
+      required List<String> scoreKeys,
+      List<String> qualificationKeys = const [],
+    }) {
+      return EducationDetail(
+        qualification:
+            _readStringFirst(json, qualificationKeys) ?? qualification,
+        year: _readStringFirst(json, yearKeys) ?? '',
+        score: _readStringFirst(json, scoreKeys) ?? '',
+      );
+    }
+
+    final rows = [
+      row(
+        qualification: 'SSLC',
+        qualificationKeys: const [
+          'sslc',
+          'sslc_qualification',
+          'sslcQualification',
+          'tenth',
+          'tenth_qualification',
+          'tenthQualification',
+        ],
+        yearKeys: const [
+          'sslc_year',
+          'sslcYear',
+          'sslc_passout_year',
+          'sslcPassoutYear',
+          'sslc_year_of_passing',
+          'sslcYearOfPassing',
+          'tenth_year',
+          'tenthYear',
+          'tenth_passout_year',
+          'tenthPassoutYear',
+        ],
+        scoreKeys: const [
+          'sslc_percentage',
+          'sslcPercentage',
+          'sslc_percent',
+          'sslcPercent',
+          'sslc_marks',
+          'sslcMarks',
+          'sslc_cgpa',
+          'sslcCgpa',
+          'tenth_percentage',
+          'tenthPercentage',
+          'tenth_marks',
+          'tenthMarks',
+        ],
+      ),
+      row(
+        qualification: 'HSC',
+        qualificationKeys: const [
+          'hsc',
+          'hsc_qualification',
+          'hscQualification',
+          'twelfth',
+          'twelfth_qualification',
+          'twelfthQualification',
+          'plus_two',
+          'plusTwo',
+        ],
+        yearKeys: const [
+          'hsc_year',
+          'hscYear',
+          'hsc_passout_year',
+          'hscPassoutYear',
+          'hsc_year_of_passing',
+          'hscYearOfPassing',
+          'twelfth_year',
+          'twelfthYear',
+          'twelfth_passout_year',
+          'twelfthPassoutYear',
+          'plus_two_year',
+          'plusTwoYear',
+        ],
+        scoreKeys: const [
+          'hsc_percentage',
+          'hscPercentage',
+          'hsc_percent',
+          'hscPercent',
+          'hsc_marks',
+          'hscMarks',
+          'hsc_cgpa',
+          'hscCgpa',
+          'twelfth_percentage',
+          'twelfthPercentage',
+          'twelfth_marks',
+          'twelfthMarks',
+          'plus_two_percentage',
+          'plusTwoPercentage',
+        ],
+      ),
+      row(
+        qualification: 'UG',
+        qualificationKeys: const [
+          'ug',
+          'ug_qualification',
+          'ugQualification',
+          'under_graduate',
+          'underGraduate',
+          'undergraduate',
+          'degree',
+          'degree_qualification',
+          'degreeQualification',
+          'graduation',
+          'graduate',
+          'college',
+          'qualification',
+        ],
+        yearKeys: const [
+          'ug_year',
+          'ugYear',
+          'ug_passout_year',
+          'ugPassoutYear',
+          'ug_year_of_passing',
+          'ugYearOfPassing',
+          'under_graduate_year',
+          'underGraduateYear',
+          'degree_year',
+          'degreeYear',
+          'degree_passout_year',
+          'degreePassoutYear',
+          'graduation_year',
+          'graduationYear',
+          'date_of_passout',
+          'dateOfPassout',
+        ],
+        scoreKeys: const [
+          'ug_percentage',
+          'ugPercentage',
+          'ug_percent',
+          'ugPercent',
+          'ug_marks',
+          'ugMarks',
+          'ug_cgpa',
+          'ugCgpa',
+          'under_graduate_percentage',
+          'underGraduatePercentage',
+          'degree_percentage',
+          'degreePercentage',
+          'degree_marks',
+          'degreeMarks',
+          'degree_cgpa',
+          'degreeCgpa',
+          'graduation_percentage',
+          'graduationPercentage',
+          'cgpa',
+          'percentage',
+        ],
+      ),
+    ];
+
+    return rows.where((item) {
+      return item.qualification.trim().isNotEmpty &&
+          (item.year.trim().isNotEmpty || item.score.trim().isNotEmpty);
+    }).toList();
+  }
+
+  static List<Map<String, dynamic>> _normalizeRows(dynamic raw) {
+    dynamic value = raw;
+    if (value is String) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) {
+        return const [];
+      }
+      try {
+        value = jsonDecode(trimmed);
+      } on FormatException {
+        final rows = _parseEducationText(trimmed);
+        if (rows.isNotEmpty) {
+          return rows.map(_toMap).toList();
+        }
+        return [
+          {'qualification': value},
+        ];
+      }
+    }
+
+    if (value is List) {
+      return value.expand((item) {
+        if (item is Map) {
+          final map = item.cast<String, dynamic>();
+          final groupedRows = _groupedEducationRows(map);
+          if (groupedRows.isNotEmpty) {
+            return groupedRows.map(_toMap);
+          }
+          return [map];
+        }
+        return [
+          <String, dynamic>{'qualification': item?.toString() ?? ''},
+        ];
+      }).toList();
+    }
+
+    if (value is Map) {
+      final map = value.cast<String, dynamic>();
+      final groupedRows = _groupedEducationRows(map);
+      final nestedRows = map.entries
+          .where((entry) => entry.value is Map)
+          .map((entry) {
+            final row = (entry.value as Map).cast<String, dynamic>();
+            return {'qualification': entry.key, ...row};
+          })
+          .toList();
+
+      if (groupedRows.isNotEmpty || nestedRows.isNotEmpty) {
+        final rows = [
+          ...groupedRows.map(_toMap),
+          ...nestedRows,
+        ];
+        return _dedupeRows(rows);
+      }
+
+      final hasRowKeys = _readFirst(map, const [
+            'qualification',
+            'course',
+            'degree',
+            'exam',
+            'standard',
+            'year',
+            'percentage',
+            'cgpa',
+            'score',
+          ]) !=
+          null;
+      if (hasRowKeys) {
+        return [map];
+      }
+      return map.entries.map((entry) {
+        if (entry.value is Map) {
+          final row = (entry.value as Map).cast<String, dynamic>();
+          return {'qualification': entry.key, ...row};
+        }
+        final key = entry.key.toLowerCase();
+        if (key.contains('year') ||
+            key.contains('percentage') ||
+            key.contains('percent') ||
+            key.contains('marks') ||
+            key.contains('cgpa') ||
+            key.contains('score')) {
+          return <String, dynamic>{};
+        }
+        return {
+          'qualification': entry.key,
+          'score': entry.value?.toString() ?? '',
+        };
+      }).where((row) => row.isNotEmpty).toList();
+    }
+
+    return const [];
+  }
+
+  static List<EducationDetail> _parseEducationText(String value) {
+    final normalized = value
+        .replaceAll('\r', '\n')
+        .replaceAll(RegExp(r'[|]+'), '\n')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    if (normalized.isEmpty) {
+      return const [];
+    }
+
+    final levelPattern = RegExp(
+      r'(sslc|10th|tenth|hsc|12th|twelfth|plus\s*two|ug|under\s*graduate|degree|graduation|pg|post\s*graduate)',
+      caseSensitive: false,
+    );
+    final matches = levelPattern.allMatches(normalized).toList();
+    if (matches.isEmpty) {
+      return const [];
+    }
+
+    final rows = <EducationDetail>[];
+    for (var index = 0; index < matches.length; index += 1) {
+      final match = matches[index];
+      final nextStart = index + 1 < matches.length
+          ? matches[index + 1].start
+          : normalized.length;
+      final segment = normalized.substring(match.start, nextStart).trim();
+      final lower = match.group(0)!.toLowerCase();
+      final year = RegExp(r'\b(19|20)\d{2}\b').firstMatch(segment)?.group(0) ?? '';
+      final score =
+          RegExp(r'\b\d{1,3}(?:\.\d+)?\s*%').firstMatch(segment)?.group(0) ??
+          RegExp(
+            r'(?:cgpa|gpa)\s*[:\-]?\s*\d{1,2}(?:\.\d+)?',
+            caseSensitive: false,
+          ).firstMatch(segment)?.group(0) ??
+          '';
+      final qualification = _qualificationLabel(
+        lower.contains('10') || lower.contains('tenth') || lower.contains('sslc')
+            ? 'sslc'
+            : lower.contains('12') ||
+                  lower.contains('twelfth') ||
+                  lower.contains('hsc') ||
+                  lower.contains('plus')
+            ? 'hsc'
+            : lower.contains('pg') || lower.contains('post')
+            ? 'pg'
+            : lower.contains('ug') ||
+                  lower.contains('under') ||
+                  lower.contains('degree') ||
+                  lower.contains('graduation')
+            ? 'ug'
+            : match.group(0)!,
+      );
+
+      rows.add(
+        EducationDetail(
+          qualification: qualification,
+          year: year,
+          score: score,
+        ),
+      );
+    }
+
+    return rows;
+  }
+
+  static List<Map<String, dynamic>> _dedupeRows(
+    List<Map<String, dynamic>> rows,
+  ) {
+    final seen = <String>{};
+    final result = <Map<String, dynamic>>[];
+    for (final row in rows) {
+      final item = _fromMap(row);
+      final key = item.qualification.trim().toLowerCase();
+      if (key.isNotEmpty && seen.contains(key)) {
+        continue;
+      }
+      if (key.isNotEmpty) {
+        seen.add(key);
+      }
+      result.add(row);
+    }
+    return result;
+  }
+
+  static Map<String, dynamic> _toMap(EducationDetail item) {
+    return {
+      'qualification': item.qualification,
+      'year': item.year,
+      'score': item.score,
+    };
+  }
+
+  static EducationDetail _fromMap(Map<String, dynamic> map) {
+    String read(List<String> keys) {
+      return _readStringFirst(map, keys) ?? '';
+    }
+
+    return EducationDetail(
+      qualification: _qualificationLabel(
+        read(const [
+          'qualification',
+          'education',
+          'education_qualification',
+          'educationQualification',
+          'education_level',
+          'educationLevel',
+          'education_type',
+          'educationType',
+          'level',
+          'type',
+          'course',
+          'degree',
+          'exam',
+          'standard',
+          'class',
+          'name',
+          'title',
+        ]),
+      ),
+      year: read(const [
+        'year',
+        'passed_year',
+        'passedYear',
+        'passing_year',
+        'passingYear',
+        'passout_year',
+        'passoutYear',
+        'year_of_passing',
+        'yearOfPassing',
+        'date_of_passout',
+        'dateOfPassout',
+        'passout',
+        'passedout',
+      ]),
+      score: read(const [
+        'percentage',
+        'percent',
+        'percentage_cgpa',
+        'percentageCgpa',
+        'percentage_or_cgpa',
+        'percentageOrCgpa',
+        'mark',
+        'marks',
+        'cgpa',
+        'score',
+        'grade',
+        'value',
+      ]),
+    );
+  }
+
+  static String _qualificationLabel(String value) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized == 'sslc' ||
+        normalized == 'ssl' ||
+        normalized == '10' ||
+        normalized == '10th' ||
+        normalized == 'tenth') {
+      return 'SSLC — 10th';
+    }
+    if (normalized == 'hsc' ||
+        normalized == '12' ||
+        normalized == '12th' ||
+        normalized == 'twelfth' ||
+        normalized == 'plus two' ||
+        normalized == 'plus_two') {
+      return 'HSC — 12th';
+    }
+    if (normalized == 'ug' || normalized == 'under graduate') {
+      return 'UG';
+    }
+    if (normalized == 'pg' || normalized == 'post graduate') {
+      return 'PG';
+    }
+    return value;
+  }
 }
 
 class CreatedApplication {
@@ -1648,6 +2586,30 @@ class ApiClient {
     return getCandidates(search: search);
   }
 
+  Future<ApplicantPage> getApplicants({
+    String? search,
+    String? gender,
+    String? experience,
+    int page = 1,
+    int perPage = 25,
+  }) async {
+    final json = await _request(
+      method: 'GET',
+      path: '/applicants',
+      query: {
+        if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+        if (gender != null && gender.trim().isNotEmpty) 'gender': gender,
+        if (experience != null && experience.trim().isNotEmpty)
+          'experience': experience,
+        'page': '$page',
+        'per_page': '$perPage',
+      },
+    );
+    return ApplicantPage.fromJson(
+      (json['data'] as Map<dynamic, dynamic>).cast<String, dynamic>(),
+    );
+  }
+
   Future<List<ApplicantLookup>> getCandidates({String? search}) async {
     final json = await _request(
       method: 'GET',
@@ -1669,17 +2631,17 @@ class ApiClient {
   Future<CandidateProfile> getCandidateProfile(int id) async {
     ApiException? lastError;
     for (final path in [
-      '/meta/applicants/$id',
       '/applicants/$id',
       '/applicant-profiles/$id',
       '/applicant_profiles/$id',
+      '/meta/applicants/$id',
       '/candidates/$id',
       '/candidate/$id',
       '/profiles/$id',
     ]) {
       try {
         final json = await _request(method: 'GET', path: path);
-        return CandidateProfile.fromJson(_extractCandidateMap(json));
+        return CandidateProfile.fromJson(_extractCandidateProfileMap(json));
       } on ApiException catch (error) {
         lastError = error;
       }
@@ -1693,7 +2655,9 @@ class ApiClient {
   ) async {
     if (candidate.id > 0) {
       try {
-        return await getCandidateProfile(candidate.id);
+        final profile = await getCandidateProfile(candidate.id);
+        final refreshed = await _refreshApplicantLookup(candidate);
+        return _withApplicantFallback(profile, refreshed ?? candidate);
       } on ApiException {
         // Fall back to the applicant lookup endpoint below. Some deployments
         // only expose `/meta/applicants` for the All Candidates listing.
@@ -1729,7 +2693,96 @@ class ApiClient {
     return CandidateProfile.fromApplicantLookup(candidate);
   }
 
-  Map<String, dynamic> _extractCandidateMap(Map<String, dynamic> json) {
+  Future<ApplicantLookup?> _refreshApplicantLookup(
+    ApplicantLookup candidate,
+  ) async {
+    try {
+      final query = candidate.contactNumber.trim().isNotEmpty
+          ? candidate.contactNumber
+          : candidate.name;
+      final candidates = await getCandidates(search: query);
+
+      for (final item in candidates) {
+        if (item.id == candidate.id) {
+          return item;
+        }
+      }
+      for (final item in candidates) {
+        if (item.contactNumber.isNotEmpty &&
+            item.contactNumber == candidate.contactNumber) {
+          return item;
+        }
+      }
+      for (final item in candidates) {
+        if (item.name.trim().toLowerCase() ==
+            candidate.name.trim().toLowerCase()) {
+          return item;
+        }
+      }
+    } on ApiException {
+      return null;
+    }
+    return null;
+  }
+
+  CandidateProfile _withApplicantFallback(
+    CandidateProfile profile,
+    ApplicantLookup applicant,
+  ) {
+    String? fallbackString(String? primary, String? fallback) {
+      return primary == null || primary.isEmpty ? fallback : primary;
+    }
+
+    return CandidateProfile(
+      id: profile.id == 0 ? applicant.id : profile.id,
+      name: profile.name.isEmpty ? applicant.name : profile.name,
+      dob: fallbackString(profile.dob, applicant.dob),
+      age: profile.age ?? applicant.age,
+      gender: profile.gender.isEmpty ? applicant.gender : profile.gender,
+      contactNumber: profile.contactNumber.isEmpty
+          ? applicant.contactNumber
+          : profile.contactNumber,
+      email: profile.email.isEmpty ? applicant.email : profile.email,
+      qualification: profile.qualification.isEmpty
+          ? applicant.qualification
+          : profile.qualification,
+      educationDetails: profile.educationDetails,
+      dateOfPassout: profile.dateOfPassout,
+      positionApplied: profile.positionApplied.isEmpty
+          ? applicant.positionApplied
+          : profile.positionApplied,
+      jobExperience: profile.jobExperience || applicant.jobExperience,
+      expectedSalary: profile.expectedSalary,
+      timingJoining: profile.timingJoining,
+      systemKnowledge: profile.systemKnowledge,
+      iibfCertified: profile.iibfCertified,
+      maritalStatus: fallbackString(
+        profile.maritalStatus,
+        applicant.maritalStatus,
+      ),
+      caste: fallbackString(profile.caste, applicant.caste),
+      aadhaarNumber: fallbackString(
+        profile.aadhaarNumber,
+        applicant.aadhaarNumber,
+      ),
+      hometown: fallbackString(profile.hometown, applicant.hometown),
+      address: fallbackString(profile.address, applicant.address),
+      permanentAddress: fallbackString(
+        profile.permanentAddress,
+        applicant.permanentAddress,
+      ),
+      languages: profile.languages,
+      twoWheeler: profile.twoWheeler,
+      fourWheeler: profile.fourWheeler,
+      profilePic: fallbackString(profile.profilePic, applicant.profilePic),
+      resume: profile.resume,
+      documents: profile.documents,
+      preferredBranches: profile.preferredBranches,
+      appliedAt: fallbackString(profile.appliedAt, applicant.appliedAt),
+    );
+  }
+
+  Map<String, dynamic> _extractCandidateProfileMap(Map<String, dynamic> json) {
     Map<String, dynamic> normalize(dynamic value) {
       if (value is Map<dynamic, dynamic>) {
         return value.cast<String, dynamic>();
@@ -1739,6 +2792,11 @@ class ApiClient {
 
     final data = normalize(json['data']);
     for (final container in [data, json]) {
+      final merged = _readCandidateProfilePayload(container);
+      if (merged.isNotEmpty) {
+        return merged;
+      }
+
       for (final key in const [
         'candidate',
         'applicant',

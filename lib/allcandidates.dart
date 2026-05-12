@@ -59,16 +59,19 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
     });
 
     try {
-      final candidates = await AppSession.instance.api.getCandidates(
+      final page = await AppSession.instance.api.getApplicants(
         search: _searchController.text,
+        gender: _selectedGender,
+        experience: _selectedExperience,
+        perPage: _rowsToShow,
       );
       setState(() {
         _candidates
           ..clear()
-          ..addAll(candidates);
-        _currentPage = 1;
-        _lastPage = 1;
-        _totalCandidates = candidates.length;
+          ..addAll(page.items);
+        _currentPage = page.currentPage;
+        _lastPage = page.lastPage;
+        _totalCandidates = page.total;
       });
     } on ApiException catch (error) {
       setState(() {
@@ -92,7 +95,19 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
       _loadingMore = true;
     });
     try {
-      await _loadInitial();
+      final page = await AppSession.instance.api.getApplicants(
+        search: _searchController.text,
+        gender: _selectedGender,
+        experience: _selectedExperience,
+        page: _currentPage + 1,
+        perPage: _rowsToShow,
+      );
+      setState(() {
+        _candidates.addAll(page.items);
+        _currentPage = page.currentPage;
+        _lastPage = page.lastPage;
+        _totalCandidates = page.total;
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -129,6 +144,8 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
     );
     List<ApplicantLookup> applicants = const [];
     List<LookupOption> hrUsers = const [];
+    List<LookupOption> positions = const [];
+    List<LookupOption> branches = const [];
     ApplicantLookup? selectedApplicant = applicantToApply ??
         (applicationToApply == null
             ? null
@@ -155,6 +172,8 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
           ));
     LookupOption? selectedHrManager;
     LookupOption? selectedAssignedTo;
+    LookupOption? selectedPosition;
+    LookupOption? selectedBranch;
     String? submitError;
     bool loadingLookups = true;
     bool submitting = false;
@@ -197,10 +216,14 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
       try {
         final responses = await Future.wait([
           AppSession.instance.api.getHrUsers(),
+          AppSession.instance.api.getDesignations(),
+          AppSession.instance.api.getBranches(),
           AppSession.instance.api.searchApplicants(applicantController.text),
         ]);
         hrUsers = responses[0] as List<LookupOption>;
-        applicants = responses[1] as List<ApplicantLookup>;
+        positions = responses[1] as List<LookupOption>;
+        branches = responses[2] as List<LookupOption>;
+        applicants = responses[3] as List<ApplicantLookup>;
         if (lockedApplication) {
           selectedApplicant =
               findInitialApplicant(applicants) ?? selectedApplicant;
@@ -265,6 +288,8 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                 final created = await AppSession.instance.api.createApplication(
                   CreateApplicationRequest(
                     applicantProfileId: selectedApplicant!.id,
+                    positionId: selectedPosition?.id,
+                    targetBranchId: selectedBranch?.id,
                     hrManagerId: selectedHrManager?.id,
                     assignedToUserId: selectedAssignedTo?.id,
                     remarks: remarksController.text,
@@ -326,6 +351,34 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
               );
             }
 
+            Widget buildPositionField() {
+              return _DropdownField(
+                label: 'Position',
+                value: selectedPosition,
+                items: positions,
+                hint: 'Select Position',
+                onChanged: (value) {
+                  setDialogState(() {
+                    selectedPosition = value;
+                  });
+                },
+              );
+            }
+
+            Widget buildBranchField() {
+              return _DropdownField(
+                label: 'Target Branch',
+                value: selectedBranch,
+                items: branches,
+                hint: 'Select Branch',
+                onChanged: (value) {
+                  setDialogState(() {
+                    selectedBranch = value;
+                  });
+                },
+              );
+            }
+
             return Dialog(
               elevation: 0,
               insetPadding: const EdgeInsets.symmetric(
@@ -381,22 +434,7 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                       ),
                       if (lockedApplication) ...[
                         const SizedBox(height: 14),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEFF3FF),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFBFD0FF)),
-                          ),
-                          child: const Text(
-                            'Position and target branch will be set during the pre-screening call.',
-                            style: TextStyle(
-                              color: Color(0xFF5867FF),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
+                        const SizedBox.shrink(),
                       ] else ...[
                         const SizedBox(height: 14),
                         const Text(
@@ -509,6 +547,10 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                buildPositionField(),
+                                const SizedBox(height: 14),
+                                buildBranchField(),
+                                const SizedBox(height: 14),
                                 buildHrManagerField(),
                                 const SizedBox(height: 14),
                                 buildInterviewerField(),
@@ -516,12 +558,25 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                             );
                           }
 
-                          return Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          return Column(
                             children: [
-                              Expanded(child: buildHrManagerField()),
-                              const SizedBox(width: 12),
-                              Expanded(child: buildInterviewerField()),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: buildPositionField()),
+                                const SizedBox(width: 12),
+                                Expanded(child: buildBranchField()),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: buildHrManagerField()),
+                                const SizedBox(width: 12),
+                                Expanded(child: buildInterviewerField()),
+                              ],
+                            ),
                             ],
                           );
                         },
@@ -693,20 +748,13 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
 
     final filteredCount = _filteredCandidates.length;
     final visibleCount = _visibleApplications.length;
-    final total = _hasLocalFilters
-        ? filteredCount
-        : _totalCandidates > 0
-        ? _totalCandidates
-        : _candidates.length;
+    final total = _totalCandidates > 0 ? _totalCandidates : filteredCount;
     if (total == 0 || visibleCount == 0) {
       return 'Showing 0 of 0 candidates';
     }
 
     return 'Showing 1-$visibleCount of $total candidates';
   }
-
-  bool get _hasLocalFilters =>
-      _selectedGender != null || _selectedExperience != null;
 
   List<ApplicantLookup> get _filteredCandidates {
     return _candidates.where((application) {
@@ -718,10 +766,10 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
 
       if (_selectedExperience != null) {
         final experienced = _isExperienced(application);
-        if (_selectedExperience == 'experienced' && !experienced) {
+        if (_selectedExperience == 'yes' && !experienced) {
           return false;
         }
-        if (_selectedExperience == 'fresher' && experienced) {
+        if (_selectedExperience == 'no' && experienced) {
           return false;
         }
       }
@@ -731,7 +779,7 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
   }
 
   List<ApplicantLookup> get _visibleApplications {
-    return _filteredCandidates.take(_rowsToShow).toList();
+    return _filteredCandidates;
   }
 
   Widget _buildPortalTopBar(BuildContext context) {
@@ -1428,7 +1476,7 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                   applicationCount: candidate.applicationCount,
                   value: _candidateValue,
                   ageLabel: _candidateAgeLabel,
-                  aadhaarLabel: _maskedCandidateAadhaar,
+                  aadhaarLabel: _candidateValue,
                   onClose: () => Navigator.of(dialogContext).pop(),
                   onApply: () {
                     Navigator.of(dialogContext).pop();
@@ -1449,17 +1497,6 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
       return '-';
     }
     return '${age.abs()} yrs';
-  }
-
-  String _maskedCandidateAadhaar(String? value) {
-    final digits = (value ?? '').replaceAll(RegExp(r'\D'), '');
-    if (digits.isEmpty) {
-      return _candidateValue(value);
-    }
-    if (digits.length <= 4) {
-      return digits;
-    }
-    return '****${digits.substring(digits.length - 4)}';
   }
 
   Future<void> _openCandidateFile(String path) async {
@@ -1493,6 +1530,7 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
             setState(() {
               _selectedGender = value;
             });
+            unawaited(_loadInitial());
           },
         );
         final experienceFilter = _buildToolbarDropdown(
@@ -1503,15 +1541,16 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
           items: const [
             DropdownMenuItem(value: null, child: Text('All')),
             DropdownMenuItem(
-              value: 'experienced',
+              value: 'yes',
               child: Text('Experienced'),
             ),
-            DropdownMenuItem(value: 'fresher', child: Text('Fresher')),
+            DropdownMenuItem(value: 'no', child: Text('Fresher')),
           ],
           onChanged: (value) {
             setState(() {
               _selectedExperience = value;
             });
+            unawaited(_loadInitial());
           },
         );
 
@@ -1563,6 +1602,7 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                 setState(() {
                   _rowsToShow = value;
                 });
+                unawaited(_loadInitial());
               },
             ),
           ),
@@ -1759,6 +1799,13 @@ class _CandidatePreviewShell extends StatelessWidget {
     final normalized = path.replaceAll('\\', '/');
     final parts = normalized.split('/');
     return parts.isEmpty ? path : parts.last;
+  }
+
+  String _addressValue(String? value) {
+    if (value == null || value.isEmpty) {
+      return '--';
+    }
+    return value;
   }
 
   IconData _documentIcon(String fileName) {
@@ -1977,7 +2024,7 @@ class _CandidatePreviewShell extends StatelessWidget {
                               ),
                               _AddressBlock(
                                 label: 'Permanent Address',
-                                value: value(profile.permanentAddress),
+                                value: _addressValue(profile.permanentAddress),
                                 isLast: true,
                               ),
                             ],
@@ -1985,32 +2032,9 @@ class _CandidatePreviewShell extends StatelessWidget {
                         );
                         final career = _DetailSectionCard(
                           title: 'Education & Career',
-                          child: Column(
-                            children: [
-                              _InfoRow(
-                                label: 'Qualification',
-                                value: value(profile.qualification),
-                              ),
-                              _InfoRow(
-                                label: 'Position Applied',
-                                value: value(profile.positionApplied),
-                              ),
-                              _InfoRow(
-                                label: 'Experience',
-                                value: profile.jobExperience
-                                    ? 'Experienced'
-                                    : 'Fresher',
-                              ),
-                              _InfoRow(
-                                label: 'Expected Salary',
-                                value: value(profile.expectedSalary),
-                              ),
-                              _InfoRow(
-                                label: 'Applied On',
-                                value: value(profile.appliedAt),
-                                isLast: true,
-                              ),
-                            ],
+                          child: _EducationCareerOverview(
+                            candidate: profile,
+                            value: value,
                           ),
                         );
 
@@ -2040,11 +2064,11 @@ class _CandidatePreviewShell extends StatelessWidget {
                         children: [
                           _AddressBlock(
                             label: 'Hometown',
-                            value: value(profile.hometown),
+                            value: _addressValue(profile.hometown),
                           ),
                           _AddressBlock(
                             label: 'Current Address',
-                            value: value(profile.address),
+                            value: _addressValue(profile.address),
                             isLast: true,
                           ),
                         ],
@@ -2521,6 +2545,13 @@ class _ApplicationDetailScreenState extends State<_ApplicationDetailScreen> {
     return value;
   }
 
+  String _addressValue(String? value) {
+    if (value == null || value.isEmpty) {
+      return '--';
+    }
+    return value;
+  }
+
   String _fileName(String path) {
     final normalized = path.replaceAll('\\', '/');
     final parts = normalized.split('/');
@@ -2532,17 +2563,6 @@ class _ApplicationDetailScreenState extends State<_ApplicationDetailScreen> {
       return '--';
     }
     return '${age.abs()} yrs';
-  }
-
-  String _maskedAadhaar(String? value) {
-    final digits = (value ?? '').replaceAll(RegExp(r'\D'), '');
-    if (digits.isEmpty) {
-      return _value(value);
-    }
-    if (digits.length <= 4) {
-      return digits;
-    }
-    return '****${digits.substring(digits.length - 4)}';
   }
 
   Widget _buildProfileSummary(ApplicationDetail detail) {
@@ -2763,11 +2783,11 @@ class _ApplicationDetailScreenState extends State<_ApplicationDetailScreen> {
                     _InfoRow(label: 'Caste', value: _value(candidate.caste)),
                     _InfoRow(
                       label: 'Aadhar',
-                      value: _maskedAadhaar(candidate.aadhaarNumber),
+                      value: _value(candidate.aadhaarNumber),
                     ),
                     _AddressBlock(
                       label: 'Permanent Address',
-                      value: _value(candidate.permanentAddress),
+                      value: _addressValue(candidate.permanentAddress),
                       isLast: true,
                     ),
                   ],
@@ -2776,16 +2796,12 @@ class _ApplicationDetailScreenState extends State<_ApplicationDetailScreen> {
               const SizedBox(height: 14),
               _DetailSectionCard(
                 title: 'Education & Career',
-                child: _CareerOverview(
-                  qualification: _value(candidate.qualification),
-                  positionApplied: _value(candidate.positionApplied),
+                child: _EducationCareerOverview(
+                  candidate: candidate,
+                  value: _value,
                   mappedPosition: detail.position == null
-                      ? '--'
+                      ? null
                       : '${detail.position!.shortName} - ${detail.position!.fullName}',
-                  experience: candidate.jobExperience
-                      ? 'Experienced'
-                      : 'Fresher',
-                  expectedSalary: _value(candidate.expectedSalary),
                 ),
               ),
               const SizedBox(height: 14),
@@ -3278,173 +3294,252 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
-class _CareerOverview extends StatelessWidget {
-  const _CareerOverview({
-    required this.qualification,
-    required this.positionApplied,
-    required this.mappedPosition,
-    required this.experience,
-    required this.expectedSalary,
+class _EducationCareerOverview extends StatelessWidget {
+  const _EducationCareerOverview({
+    required this.candidate,
+    required this.value,
+    this.mappedPosition,
   });
 
-  final String qualification;
-  final String positionApplied;
-  final String mappedPosition;
-  final String experience;
-  final String expectedSalary;
+  final CandidateProfile candidate;
+  final String Function(String? value) value;
+  final String? mappedPosition;
+
+  String _salaryLabel(String? salary) {
+    final raw = value(salary);
+    if (raw == '--' || raw.startsWith('Rs') || raw.startsWith('₹')) {
+      return raw;
+    }
+    return 'Rs $raw';
+  }
+
+  List<EducationDetail> get _educationRows {
+    if (candidate.educationDetails.isNotEmpty) {
+      return candidate.educationDetails;
+    }
+    if (candidate.qualification.trim().isEmpty) {
+      return const [];
+    }
+    return [
+      EducationDetail(
+        qualification: candidate.qualification,
+        year: candidate.dateOfPassout ?? '',
+        score: '',
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final twoColumn = constraints.maxWidth >= 560;
-        final positionItems = [
-          _CareerFact(
-            icon: Icons.work_outline_rounded,
-            label: 'Position Applied',
-            value: positionApplied,
-          ),
-          _CareerFact(
-            icon: Icons.badge_outlined,
-            label: 'Mapped Position',
-            value: mappedPosition,
-          ),
-        ];
-        final detailItems = [
-          _CareerFact(
-            icon: Icons.timeline_rounded,
-            label: 'Experience',
-            value: experience,
-          ),
-          _CareerFact(
-            icon: Icons.currency_rupee_rounded,
-            label: 'Expected Salary',
-            value: expectedSalary,
-          ),
-        ];
+    final rows = _educationRows;
+    final details = [
+      _CareerLineData(
+        'Post Applied For',
+        value(candidate.positionApplied),
+      ),
+      if (mappedPosition != null && mappedPosition!.trim().isNotEmpty)
+        _CareerLineData('Mapped Position', mappedPosition!),
+      _CareerLineData(
+        'Experience',
+        candidate.jobExperience ? 'Experienced' : 'Fresher',
+      ),
+      _CareerLineData('Exp. Salary', _salaryLabel(candidate.expectedSalary)),
+      _CareerLineData('Join Timing', value(candidate.timingJoining)),
+      _CareerLineData('System Knowledge', value(candidate.systemKnowledge)),
+      _CareerLineData('IIBF Certified', value(candidate.iibfCertified)),
+    ];
 
-        return Column(
-          children: [
-            _CareerFact(
-              icon: Icons.school_outlined,
-              label: 'Education Qualification',
-              value: qualification,
-              prominent: true,
-            ),
-            const SizedBox(height: 10),
-            if (twoColumn)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: positionItems[0]),
-                  const SizedBox(width: 10),
-                  Expanded(child: positionItems[1]),
-                ],
-              )
-            else
-              Column(
-                children: [
-                  positionItems[0],
-                  const SizedBox(height: 10),
-                  positionItems[1],
-                ],
-              ),
-            const SizedBox(height: 10),
-            if (twoColumn)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: detailItems[0]),
-                  const SizedBox(width: 10),
-                  Expanded(child: detailItems[1]),
-                ],
-              )
-            else
-              Column(
-                children: [
-                  detailItems[0],
-                  const SizedBox(height: 10),
-                  detailItems[1],
-                ],
-              ),
-          ],
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'QUALIFICATIONS',
+          style: TextStyle(
+            fontSize: 10,
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF98A0B3),
+          ),
+        ),
+        const SizedBox(height: 8),
+        _QualificationTable(rows: rows, value: value),
+        const SizedBox(height: 4),
+        ...details.asMap().entries.map(
+          (entry) => _CareerLine(
+            label: entry.value.label,
+            value: entry.value.value,
+            isLast: entry.key == details.length - 1,
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _CareerFact extends StatelessWidget {
-  const _CareerFact({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.prominent = false,
-  });
+class _CareerLineData {
+  const _CareerLineData(this.label, this.value);
 
-  final IconData icon;
   final String label;
   final String value;
-  final bool prominent;
+}
+
+class _QualificationTable extends StatelessWidget {
+  const _QualificationTable({required this.rows, required this.value});
+
+  final List<EducationDetail> rows;
+  final String Function(String? value) value;
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleRows = rows.isEmpty
+        ? const [
+            EducationDetail(qualification: '--', year: '--', score: '--'),
+          ]
+        : rows;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFCFDFF),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE9EDF5)),
+      ),
+      child: Column(
+        children: [
+          const _QualificationRow(
+            qualification: 'Qualification',
+            year: 'Year',
+            score: '% / CGPA',
+            isHeader: true,
+          ),
+          ...visibleRows.asMap().entries.map(
+            (entry) {
+              final item = entry.value;
+              return _QualificationRow(
+                qualification: value(item.qualification),
+                year: value(item.year),
+                score: value(item.score),
+                isLast: entry.key == visibleRows.length - 1,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QualificationRow extends StatelessWidget {
+  const _QualificationRow({
+    required this.qualification,
+    required this.year,
+    required this.score,
+    this.isHeader = false,
+    this.isLast = false,
+  });
+
+  final String qualification;
+  final String year;
+  final String score;
+  final bool isHeader;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(
+      fontSize: isHeader ? 10 : 12,
+      fontWeight: isHeader ? FontWeight.w800 : FontWeight.w700,
+      color: isHeader ? const Color(0xFF98A0B3) : const Color(0xFF232938),
+      letterSpacing: isHeader ? 0.6 : 0,
+    );
+
+    return Container(
+      constraints: BoxConstraints(minHeight: isHeader ? 38 : 46),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: isHeader ? const Color(0xFFF7F9FC) : Colors.white,
+        border: isLast
+            ? null
+            : const Border(bottom: BorderSide(color: Color(0xFFEFF2F7))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 5,
+            child: Text(
+              isHeader ? qualification.toUpperCase() : qualification,
+              style: style,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 2,
+            child: Text(
+              isHeader ? year.toUpperCase() : year,
+              textAlign: TextAlign.center,
+              style: style,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 2,
+            child: Text(
+              isHeader ? score.toUpperCase() : score,
+              textAlign: TextAlign.right,
+              style: style,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CareerLine extends StatelessWidget {
+  const _CareerLine({
+    required this.label,
+    required this.value,
+    this.isLast = false,
+  });
+
+  final String label;
+  final String value;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      constraints: BoxConstraints(minHeight: prominent ? 76 : 68),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: prominent ? const Color(0xFFF6F4FF) : const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: prominent ? const Color(0xFFDCD6FF) : const Color(0xFFE8EDF7),
-        ),
+        border: isLast
+            ? null
+            : const Border(bottom: BorderSide(color: Color(0xFFF0F2F7))),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE2E6F0)),
-            ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: _AllCandidatesScreenState._accent,
+          Expanded(
+            flex: 5,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF8A91A4),
+              ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  label.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 10,
-                    letterSpacing: 0.7,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF7C8498),
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  value,
-                  softWrap: true,
-                  style: TextStyle(
-                    fontSize: prominent ? 14 : 13,
-                    height: 1.25,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF232938),
-                  ),
-                ),
-              ],
+            flex: 6,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF232938),
+              ),
             ),
           ),
         ],

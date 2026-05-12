@@ -219,6 +219,24 @@ String? _readAadhaarNumber(Map<String, dynamic> json) {
 }
 
 String? _readIibfCertified(Map<String, dynamic> json) {
+  for (final map in [
+    json,
+    _readMap(json['employment']),
+    _readMap(json['employment_details']),
+    _readMap(json['employmentDetails']),
+    _readMap(json['employment_detail']),
+    _readMap(json['employmentDetail']),
+  ]) {
+    final value = _readIibfCertifiedFromMap(map);
+    if (value != null) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+String? _readIibfCertifiedFromMap(Map<String, dynamic> json) {
   final direct = _readFirst(json, const [
     'iibf_certified',
     'iibfCertified',

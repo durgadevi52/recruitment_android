@@ -2059,23 +2059,6 @@ class _CandidatePreviewShell extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _DetailSectionCard(
-                      title: 'Address',
-                      child: Column(
-                        children: [
-                          _AddressBlock(
-                            label: 'Hometown',
-                            value: _addressValue(profile.hometown),
-                          ),
-                          _AddressBlock(
-                            label: 'Current Address',
-                            value: _addressValue(profile.address),
-                            isLast: true,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _DetailSectionCard(
                       title: 'Skills & Mobility',
                       child: Column(
                         children: [
@@ -3313,6 +3296,21 @@ class _EducationCareerOverview extends StatelessWidget {
     return 'Rs $raw';
   }
 
+  String _iibfCertifiedLabel(String? certified) {
+    final raw = certified?.trim() ?? '';
+    if (raw.isEmpty) {
+      return '--';
+    }
+    final normalized = raw.toLowerCase();
+    if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
+      return 'Yes';
+    }
+    if (normalized == 'false' || normalized == '0' || normalized == 'no') {
+      return 'No';
+    }
+    return raw;
+  }
+
   List<EducationDetail> get _educationRows {
     if (candidate.educationDetails.isNotEmpty) {
       return candidate.educationDetails;
@@ -3346,7 +3344,10 @@ class _EducationCareerOverview extends StatelessWidget {
       _CareerLineData('Exp. Salary', _salaryLabel(candidate.expectedSalary)),
       _CareerLineData('Join Timing', value(candidate.timingJoining)),
       _CareerLineData('System Knowledge', value(candidate.systemKnowledge)),
-      _CareerLineData('IIBF Certified', value(candidate.iibfCertified)),
+      _CareerLineData(
+        'IIBF Certified',
+        _iibfCertifiedLabel(candidate.iibfCertified),
+      ),
     ];
 
     return Column(

@@ -287,6 +287,43 @@ String? _readIibfCertifiedFromMap(Map<String, dynamic> json) {
   return null;
 }
 
+List<PreferredBranch> _readPreferredBranches(Map<String, dynamic> json) {
+  final raw = _readFirst(json, const [
+    'preferred_branch_ids',
+    'preferredBranchIds',
+    'preferred_branches',
+    'preferredBranches',
+  ]);
+  final values = raw is List
+      ? raw
+      : raw is String && raw.contains(',')
+      ? raw.split(',')
+      : raw == null
+      ? const []
+      : [raw];
+
+  return values
+      .map((item) {
+        if (item is Map) {
+          return PreferredBranch.fromJson(item.cast<String, dynamic>());
+        }
+        final value = item.toString().trim();
+        if (value.isEmpty) {
+          return null;
+        }
+        final id = int.tryParse(value);
+        return PreferredBranch(id: id ?? 0, name: id == null ? value : '');
+      })
+      .whereType<PreferredBranch>()
+      .where((branch) => branch.label.isNotEmpty)
+      .fold(<String, PreferredBranch>{}, (items, branch) {
+        items.putIfAbsent(branch.dedupeKey, () => branch);
+        return items;
+      })
+      .values
+      .toList();
+}
+
 String? _readJoinedAddressParts(Map<String, dynamic> json) {
   final parts = [
     _readStringFirst(json, const [
@@ -1124,7 +1161,7 @@ class CandidateProfile {
   final String? profilePic;
   final String? resume;
   final List<CandidateDocument> documents;
-  final List<String> preferredBranches;
+  final List<PreferredBranch> preferredBranches;
   final String? appliedAt;
 
   factory CandidateProfile.fromJson(Map<String, dynamic> json) {
@@ -1230,17 +1267,7 @@ class CandidateProfile {
           ])?.toString(),
       resume: json['resume']?.toString(),
       documents: CandidateDocument.listFromCandidateJson(json),
-      preferredBranches: ((json['preferred_branches'] as List?) ?? [])
-          .map((item) {
-            if (item is Map) {
-              final map = item.cast<String, dynamic>();
-              return (map['name'] ?? map['code'] ?? map['id'] ?? '')
-                  .toString();
-            }
-            return '$item';
-          })
-          .where((item) => item.trim().isNotEmpty)
-          .toList(),
+      preferredBranches: _readPreferredBranches(json),
       appliedAt: json['applied_at']?.toString(),
     );
   }
@@ -1471,6 +1498,7 @@ class BranchDetail {
     required this.cluster,
     required this.state,
     required this.city,
+    required this.district,
   });
 
   final int id;
@@ -1480,6 +1508,7 @@ class BranchDetail {
   final String? cluster;
   final String? state;
   final String? city;
+  final String? district;
 
   factory BranchDetail.fromJson(Map<String, dynamic> json) {
     return BranchDetail(
@@ -1490,6 +1519,7 @@ class BranchDetail {
       cluster: json['cluster']?.toString() ?? json['cluster_name']?.toString(),
       state: json['state']?.toString(),
       city: json['city']?.toString(),
+      district: json['district']?.toString(),
     );
   }
 }
@@ -1796,6 +1826,70 @@ class LookupOption {
   final int id;
   final String title;
   final String? subtitle;
+}
+
+class PreferredBranch {
+  const PreferredBranch({
+    this.id = 0,
+    this.code = '',
+    this.name = '',
+    this.district = '',
+    this.state = '',
+  });
+
+  final int id;
+  final String code;
+  final String name;
+  final String district;
+  final String state;
+
+  String get label {
+    if (code.isNotEmpty && name.isNotEmpty) {
+      return '$code $name';
+    }
+    if (name.isNotEmpty) {
+      return name;
+    }
+    if (code.isNotEmpty) {
+      return code;
+    }
+    return id > 0 ? '$id' : '';
+  }
+
+  String get dedupeKey {
+    if (id > 0) {
+      return 'id:$id';
+    }
+    if (code.isNotEmpty) {
+      return 'code:${code.toLowerCase()}';
+    }
+    return 'name:${name.toLowerCase()}';
+  }
+
+  PreferredBranch resolveWith(BranchDetail branch) {
+    return PreferredBranch(
+      id: branch.id,
+      code: branch.code,
+      name: branch.name,
+      district: branch.district ?? cityOrEmpty(branch.city),
+      state: branch.state ?? state,
+    );
+  }
+
+  static String cityOrEmpty(String? value) => value?.trim() ?? '';
+
+  factory PreferredBranch.fromJson(Map<String, dynamic> json) {
+    String read(List<String> keys) =>
+        _readStringFirst(json, keys)?.trim() ?? '';
+
+    return PreferredBranch(
+      id: _readInt(_readFirst(json, const ['id', 'branch_id', 'branchId'])),
+      code: read(const ['code', 'branch_code', 'branchCode']),
+      name: read(const ['name', 'branch_name', 'branchName']),
+      district: read(const ['district', 'district_name', 'districtName']),
+      state: read(const ['state', 'state_name', 'stateName']),
+    );
+  }
 }
 
 class ApplicantLookup {
@@ -2586,6 +2680,17 @@ class ApiClient {
         subtitle: (map['code'] ?? '').toString(),
       );
     }).toList();
+  }
+
+  Future<List<BranchDetail>> getBranchDetails() async {
+    final json = await _request(method: 'GET', path: '/meta/branches');
+    return ((json['data'] as List?) ?? [])
+        .map(
+          (item) => BranchDetail.fromJson(
+            (item as Map<dynamic, dynamic>).cast<String, dynamic>(),
+          ),
+        )
+        .toList();
   }
 
   Future<List<LookupOption>> getHrUsers() async {

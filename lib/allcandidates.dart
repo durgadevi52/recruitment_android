@@ -2088,17 +2088,8 @@ class _CandidatePreviewShell extends StatelessWidget {
                           ? const _EmptyInline(
                               message: 'No preferred branches available.',
                             )
-                          : Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: profile.preferredBranches
-                                  .map(
-                                    (branch) => _StatusPill(
-                                      label: branch,
-                                      color: _AllCandidatesScreenState._accent,
-                                    ),
-                                  )
-                                  .toList(),
+                          : _PreferredBranchesList(
+                              branches: profile.preferredBranches,
                             ),
                     ),
                     const SizedBox(height: 12),
@@ -2865,17 +2856,8 @@ class _ApplicationDetailScreenState extends State<_ApplicationDetailScreen> {
                 title: 'Preferred Branches',
                 child: candidate.preferredBranches.isEmpty
                     ? const _EmptyInline(message: 'No preferred branches added.')
-                    : Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: candidate.preferredBranches
-                            .map(
-                              (branch) => _StatusPill(
-                                label: branch,
-                                color: const Color(0xFF5447E8),
-                              ),
-                            )
-                            .toList(),
+                    : _PreferredBranchesList(
+                        branches: candidate.preferredBranches,
                       ),
               ),
               const SizedBox(height: 14),
@@ -3272,6 +3254,156 @@ class _StatusPill extends StatelessWidget {
           fontWeight: FontWeight.w800,
           color: color,
         ),
+      ),
+    );
+  }
+}
+
+class _PreferredBranchesList extends StatefulWidget {
+  const _PreferredBranchesList({required this.branches});
+
+  final List<PreferredBranch> branches;
+
+  @override
+  State<_PreferredBranchesList> createState() => _PreferredBranchesListState();
+}
+
+class _PreferredBranchesListState extends State<_PreferredBranchesList> {
+  late Future<List<BranchDetail>> _branchesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _branchesFuture = AppSession.instance.api.getBranchDetails();
+  }
+
+  List<PreferredBranch> _resolveBranches(List<BranchDetail> lookup) {
+    return widget.branches.map((branch) {
+      BranchDetail? match;
+      for (final item in lookup) {
+        if (branch.id > 0 && item.id == branch.id) {
+          match = item;
+          break;
+        }
+        if (branch.code.isNotEmpty && item.code == branch.code) {
+          match = item;
+          break;
+        }
+      }
+      return match == null ? branch : branch.resolveWith(match);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<BranchDetail>>(
+      future: _branchesFuture,
+      builder: (context, snapshot) {
+        final branches = snapshot.hasData
+            ? _resolveBranches(snapshot.data!)
+            : widget.branches;
+        return _PreferredBranchesBody(branches: branches);
+      },
+    );
+  }
+}
+
+class _PreferredBranchesBody extends StatelessWidget {
+  const _PreferredBranchesBody({required this.branches});
+
+  final List<PreferredBranch> branches;
+
+  @override
+  Widget build(BuildContext context) {
+    final grouped = <String, List<PreferredBranch>>{};
+    for (final branch in branches) {
+      final state = branch.state.trim().isEmpty
+          ? 'TAMILNADU'
+          : branch.state.trim().toUpperCase();
+      grouped.putIfAbsent(state, () => []).add(branch);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: grouped.entries.map((entry) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                entry.key,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF98A0B3),
+                ),
+              ),
+              const SizedBox(height: 10),
+              ...entry.value.map((branch) => _PreferredBranchRow(branch)),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _PreferredBranchRow extends StatelessWidget {
+  const _PreferredBranchRow(this.branch);
+
+  final PreferredBranch branch;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          if (branch.code.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAD9FF),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                branch.code,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF6A00FF),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+          ],
+          Flexible(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: branch.name.isEmpty ? branch.label : branch.name,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                  if (branch.district.isNotEmpty)
+                    TextSpan(
+                      text: '  · ${branch.district}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF8C93A6),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

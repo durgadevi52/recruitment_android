@@ -623,6 +623,19 @@ Map<String, dynamic> _readCandidateProfilePayload(Map<String, dynamic> json) {
     merged['current_address'] = currentAddress;
   }
 
+  final sourceReferral =
+      _readSourceReferral(merged) ?? _readSourceReferral(json);
+  if (sourceReferral != null && sourceReferral.isNotEmpty) {
+    merged['source_referral'] = sourceReferral;
+  }
+
+  final appliedAt =
+      _readFirst(merged, const ['applied_at', 'created_at', 'createdAt']) ??
+      _readFirst(json, const ['applied_at', 'created_at', 'createdAt']);
+  if (appliedAt != null && appliedAt.toString().isNotEmpty) {
+    merged['applied_at'] = appliedAt;
+  }
+
   return merged;
 }
 
@@ -1270,19 +1283,10 @@ class CandidateProfile {
       resume: json['resume']?.toString(),
       documents: CandidateDocument.listFromCandidateJson(json),
       preferredBranches: _readPreferredBranches(json),
-      appliedAt: json['applied_at']?.toString(),
-      sourceReferral:
-          _readFirst(json, const [
-            'referred_via',
-            'referredVia',
-            'referral_source',
-            'referralSource',
-            'source_referral',
-            'sourceReferral',
-            'source',
-            'application_source',
-            'applicationSource',
-          ])?.toString(),
+      appliedAt:
+          _readFirst(json, const ['applied_at', 'created_at', 'createdAt'])
+              ?.toString(),
+      sourceReferral: _readSourceReferral(json),
     );
   }
 
@@ -2000,20 +2004,36 @@ class ApplicantLookup {
           ])?.toString(),
       address: _readCurrentAddress(json),
       permanentAddress: _readPermanentAddress(json),
-      sourceReferral:
-          _readFirst(json, const [
-            'referred_via',
-            'referredVia',
-            'referral_source',
-            'referralSource',
-            'source_referral',
-            'sourceReferral',
-            'source',
-            'application_source',
-            'applicationSource',
-          ])?.toString(),
+      sourceReferral: _readSourceReferral(json),
     );
   }
+}
+
+String? _readSourceReferral(Map<String, dynamic> json) {
+  final source = _readFirst(json, const [
+    'referred_via',
+    'referredVia',
+    'referral_source',
+    'referralSource',
+    'source_referral',
+    'sourceReferral',
+    'source',
+    'application_source',
+    'applicationSource',
+  ]);
+  if (source == null) {
+    return null;
+  }
+  if (source is Map<dynamic, dynamic>) {
+    return _readFirst(source.cast<String, dynamic>(), const [
+      'name',
+      'label',
+      'title',
+      'source',
+      'value',
+    ])?.toString();
+  }
+  return source.toString();
 }
 
 bool _readJobExperience(dynamic value) {
@@ -2931,6 +2951,10 @@ class ApiClient {
       documents: profile.documents,
       preferredBranches: profile.preferredBranches,
       appliedAt: fallbackString(profile.appliedAt, applicant.appliedAt),
+      sourceReferral: fallbackString(
+        profile.sourceReferral,
+        applicant.sourceReferral,
+      ),
     );
   }
 

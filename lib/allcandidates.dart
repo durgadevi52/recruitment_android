@@ -1807,6 +1807,33 @@ class _CandidatePreviewShell extends StatelessWidget {
     return value;
   }
 
+  String _recordDate(String? value) {
+    final raw = value?.trim() ?? '';
+    if (raw.isEmpty) {
+      return '--';
+    }
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) {
+      return raw;
+    }
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final day = parsed.day.toString().padLeft(2, '0');
+    return '$day ${months[parsed.month - 1]} ${parsed.year}';
+  }
+
   IconData _documentIcon(String fileName) {
     final lower = fileName.toLowerCase();
     if (lower.endsWith('.pdf')) {
@@ -2075,6 +2102,26 @@ class _CandidatePreviewShell extends StatelessWidget {
                         value: value(profile.sourceReferral),
                         highlightColor: const Color(0xFF2F36D7),
                         isLast: true,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _DetailSectionCard(
+                      title: 'Record Info',
+                      compact: true,
+                      child: Column(
+                        children: [
+                          _InfoRow(
+                            label: 'Applied On',
+                            value: _recordDate(profile.appliedAt),
+                          ),
+                          _BadgeInfoRow(
+                            label: 'Applications',
+                            value: '$applicationCount',
+                            highlightColor:
+                                _AllCandidatesScreenState._accent,
+                            isLast: true,
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 12),

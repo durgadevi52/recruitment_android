@@ -351,33 +351,33 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
               );
             }
 
-            Widget buildPositionField() {
-              return _DropdownField(
-                label: 'Position',
-                value: selectedPosition,
-                items: positions,
-                hint: 'Select Position',
-                onChanged: (value) {
-                  setDialogState(() {
-                    selectedPosition = value;
-                  });
-                },
-              );
-            }
+            // Widget buildPositionField() {
+            //   return _DropdownField(
+            //     label: 'Position',
+            //     value: selectedPosition,
+            //     items: positions,
+            //     hint: 'Select Position',
+            //     onChanged: (value) {
+            //       setDialogState(() {
+            //         selectedPosition = value;
+            //       });
+            //     },
+            //   );
+            // }
 
-            Widget buildBranchField() {
-              return _DropdownField(
-                label: 'Target Branch',
-                value: selectedBranch,
-                items: branches,
-                hint: 'Select Branch',
-                onChanged: (value) {
-                  setDialogState(() {
-                    selectedBranch = value;
-                  });
-                },
-              );
-            }
+            // Widget buildBranchField() {
+            //   return _DropdownField(
+            //     label: 'Target Branch',
+            //     value: selectedBranch,
+            //     items: branches,
+            //     hint: 'Select Branch',
+            //     onChanged: (value) {
+            //       setDialogState(() {
+            //         selectedBranch = value;
+            //       });
+            //     },
+            //   );
+            // }
 
             return Dialog(
               elevation: 0,
@@ -543,31 +543,30 @@ class _AllCandidatesScreenState extends State<AllCandidatesScreen> {
                       const SizedBox(height: 14),
                       LayoutBuilder(
                         builder: (context, constraints) {
-                          if (constraints.maxWidth < 420) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                buildPositionField(),
-                                const SizedBox(height: 14),
-                                buildBranchField(),
-                                const SizedBox(height: 14),
-                                buildHrManagerField(),
-                                const SizedBox(height: 14),
-                                buildInterviewerField(),
-                              ],
-                            );
-                          }
+                          // if (constraints.maxWidth < 420) {
+                          //   return Column(
+                          //     crossAxisAlignment: CrossAxisAlignment.start,
+                          //     children: [
+                          //       buildPositionField(),
+                          //       const SizedBox(height: 14),
+                          //       // buildBranchField(),
+                          //       // const SizedBox(height: 14),
+                          //       buildHrManagerField(),
+                          //       const SizedBox(height: 14),
+                          //       buildInterviewerField(),
+                          //     ],
+                          //   );
+                          // }
 
                           return Column(
                             children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(child: buildPositionField()),
-                                const SizedBox(width: 12),
-                                Expanded(child: buildBranchField()),
-                              ],
-                            ),
+                            //   Row(
+                            //     crossAxisAlignment: CrossAxisAlignment.start,
+                            //   children: [
+                            //     const SizedBox(width: 12),
+                            //     // Expanded(child: buildBranchField()),
+                            //   ],
+                            // ),
                             const SizedBox(height: 14),
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2059,16 +2058,30 @@ class _CandidatePreviewShell extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _DetailSectionCard(
-                      title: 'Skills & Mobility',
+                      title: 'Languages Known',
+                      compact: true,
+                      child: profile.languages.isEmpty
+                          ? const _EmptyInline(
+                              message: 'No language details available.',
+                            )
+                          : _KnownLanguagesList(languages: profile.languages),
+                    ),
+                    const SizedBox(height: 12),
+                    _DetailSectionCard(
+                      title: 'Source & Referral',
+                      compact: true,
+                      child: _BadgeInfoRow(
+                        label: 'Referred Via',
+                        value: value(profile.sourceReferral),
+                        highlightColor: const Color(0xFF2F36D7),
+                        isLast: true,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _DetailSectionCard(
+                      title: 'Mobility',
                       child: Column(
                         children: [
-                          _TagInfoRow(
-                            label: 'Languages',
-                            value: profile.languages.isEmpty
-                                ? '--'
-                                : profile.languages.join(', '),
-                            highlightColor: const Color(0xFF6A4CF3),
-                          ),
                           _TagInfoRow(
                             label: '2-Wheeler',
                             value: profile.twoWheeler ? 'Yes' : 'No',
@@ -2829,16 +2842,30 @@ class _ApplicationDetailScreenState extends State<_ApplicationDetailScreen> {
               ),
               const SizedBox(height: 14),
               _DetailSectionCard(
-                title: 'Skills & Attributes',
+                title: 'Languages Known',
+                compact: true,
+                child: candidate.languages.isEmpty
+                    ? const _EmptyInline(
+                        message: 'No language details available.',
+                      )
+                    : _KnownLanguagesList(languages: candidate.languages),
+              ),
+              const SizedBox(height: 14),
+              _DetailSectionCard(
+                title: 'Source & Referral',
+                compact: true,
+                child: _BadgeInfoRow(
+                  label: 'Referred Via',
+                  value: _value(candidate.sourceReferral),
+                  highlightColor: const Color(0xFF2F36D7),
+                  isLast: true,
+                ),
+              ),
+              const SizedBox(height: 14),
+              _DetailSectionCard(
+                title: 'Mobility',
                 child: Column(
                   children: [
-                    _TagInfoRow(
-                      label: 'Languages',
-                      value: candidate.languages.isEmpty
-                          ? '--'
-                          : candidate.languages.join(', '),
-                      highlightColor: const Color(0xFF6A4CF3),
-                    ),
                     _TagInfoRow(
                       label: '2-Wheeler',
                       value: candidate.twoWheeler ? 'Yes' : 'No',
@@ -3102,20 +3129,25 @@ class _DetailSectionCard extends StatelessWidget {
     required this.title,
     required this.child,
     this.titleTrailing,
+    this.compact = false,
   });
 
   final String title;
   final Widget child;
   final Widget? titleTrailing;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 10 : 16,
+        vertical: compact ? 14 : 16,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(compact ? 14 : 20),
         boxShadow: const [
           BoxShadow(
             color: Color(0x10000000),
@@ -3142,7 +3174,7 @@ class _DetailSectionCard extends StatelessWidget {
               ?titleTrailing,
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: compact ? 12 : 14),
           child,
         ],
       ),
@@ -3965,6 +3997,96 @@ class _TagInfoRow extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
+                color: highlightColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KnownLanguagesList extends StatelessWidget {
+  const _KnownLanguagesList({required this.languages});
+
+  final List<String> languages;
+
+  @override
+  Widget build(BuildContext context) {
+    final cleaned = languages
+        .map((language) => language.trim())
+        .where((language) => language.isNotEmpty)
+        .toList();
+
+    if (cleaned.isEmpty) {
+      return const _EmptyInline(message: 'No language details available.');
+    }
+
+    return Column(
+      children: [
+        for (var index = 0; index < cleaned.length; index++)
+          _BadgeInfoRow(
+            label: cleaned[index],
+            value: 'Known',
+            highlightColor: const Color(0xFFD97706),
+            isLast: index == cleaned.length - 1,
+          ),
+      ],
+    );
+  }
+}
+
+class _BadgeInfoRow extends StatelessWidget {
+  const _BadgeInfoRow({
+    required this.label,
+    required this.value,
+    required this.highlightColor,
+    this.isLast = false,
+  });
+
+  final String label;
+  final String value;
+  final Color highlightColor;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        border: isLast
+            ? null
+            : const Border(bottom: BorderSide(color: Color(0xFFF0F2F7))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF14213D),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            constraints: const BoxConstraints(maxWidth: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: highlightColor.withValues(alpha: 0.08),
+              border: Border.all(color: highlightColor.withValues(alpha: 0.18)),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              value,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
                 color: highlightColor,
               ),
             ),

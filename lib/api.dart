@@ -1131,6 +1131,7 @@ class CandidateProfile {
     required this.documents,
     required this.preferredBranches,
     required this.appliedAt,
+    this.sourceReferral,
   });
 
   final int id;
@@ -1163,6 +1164,7 @@ class CandidateProfile {
   final List<CandidateDocument> documents;
   final List<PreferredBranch> preferredBranches;
   final String? appliedAt;
+  final String? sourceReferral;
 
   factory CandidateProfile.fromJson(Map<String, dynamic> json) {
     final education = _readMap(json['education']);
@@ -1269,6 +1271,18 @@ class CandidateProfile {
       documents: CandidateDocument.listFromCandidateJson(json),
       preferredBranches: _readPreferredBranches(json),
       appliedAt: json['applied_at']?.toString(),
+      sourceReferral:
+          _readFirst(json, const [
+            'referred_via',
+            'referredVia',
+            'referral_source',
+            'referralSource',
+            'source_referral',
+            'sourceReferral',
+            'source',
+            'application_source',
+            'applicationSource',
+          ])?.toString(),
     );
   }
 
@@ -1304,6 +1318,7 @@ class CandidateProfile {
       documents: const [],
       preferredBranches: const [],
       appliedAt: candidate.appliedAt,
+      sourceReferral: candidate.sourceReferral,
     );
   }
 }
@@ -1913,6 +1928,7 @@ class ApplicantLookup {
     this.hometown,
     this.address,
     this.permanentAddress,
+    this.sourceReferral,
   });
 
   final int id;
@@ -1934,6 +1950,7 @@ class ApplicantLookup {
   final String? hometown;
   final String? address;
   final String? permanentAddress;
+  final String? sourceReferral;
 
   factory ApplicantLookup.fromJson(Map<String, dynamic> json) {
     return ApplicantLookup(
@@ -1983,6 +2000,18 @@ class ApplicantLookup {
           ])?.toString(),
       address: _readCurrentAddress(json),
       permanentAddress: _readPermanentAddress(json),
+      sourceReferral:
+          _readFirst(json, const [
+            'referred_via',
+            'referredVia',
+            'referral_source',
+            'referralSource',
+            'source_referral',
+            'sourceReferral',
+            'source',
+            'application_source',
+            'applicationSource',
+          ])?.toString(),
     );
   }
 }

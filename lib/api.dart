@@ -239,16 +239,16 @@ String? _readIibfCertified(Map<String, dynamic> json) {
 String? _readIibfCertifiedFromMap(Map<String, dynamic> json) {
   final direct = _readFirst(json, const [
     'iibf_certified',
-    'iibfCertified',
-    'iibf_certificate',
-    'iibfCertificate',
-    'iibf_certification',
-    'iibfCertification',
-    'iibf_status',
-    'iibfStatus',
-    'is_iibf_certified',
-    'isIibfCertified',
-    'iibf',
+    // 'iibfCertified',
+    // 'iibf_certificate',
+    // 'iibfCertificate',
+    // 'iibf_certification',
+    // 'iibfCertification',
+    // 'iibf_status',
+    // 'iibfStatus',
+    // 'is_iibf_certified',
+    // 'isIibfCertified',
+    // 'iibf',
   ]);
   final directValue = _readYesNo(direct);
   if (directValue != null) {
@@ -270,13 +270,13 @@ String? _readIibfCertifiedFromMap(Map<String, dynamic> json) {
     }
     final nestedValue = _readYesNo(
       _readFirst(nested, const [
-        'certified',
-        'is_certified',
-        'isCertified',
-        'status',
-        'value',
+        // 'certified',
+        // 'is_certified',
+        // 'isCertified',
+        // 'status',
+        // 'value',
         'iibf_certified',
-        'iibfCertified',
+        // 'iibfCertified',
       ]),
     );
     if (nestedValue != null) {
@@ -293,6 +293,11 @@ List<PreferredBranch> _readPreferredBranches(Map<String, dynamic> json) {
     'preferredBranchIds',
     'preferred_branches',
     'preferredBranches',
+    'preferred_branch',
+    'preferredBranch',
+    'branch_preferences',
+    'branchPreferences',
+    'branches',
   ]);
   final values = raw is List
       ? raw
@@ -481,30 +486,9 @@ String? _readCurrentAddress(Map<String, dynamic> json) {
   final addressMap = _readAddressMap(json);
   return _readStringFirst(json, const [
         'current_address',
-        'currentAddress',
-        'present_address',
-        'presentAddress',
-        'communication_address',
-        'communicationAddress',
-        'residential_address',
-        'residentialAddress',
       ]) ??
       _readStringFirst(addressMap, const [
         'current_address',
-        'currentAddress',
-        'current',
-        'present_address',
-        'presentAddress',
-        'present',
-        'communication_address',
-        'communicationAddress',
-        'communication',
-        'residential_address',
-        'residentialAddress',
-        'residential',
-        'full_address',
-        'fullAddress',
-        'line',
       ]) ??
       _readAddressParts(addressMap) ??
       _readStringFirst(json, const ['address']);
@@ -514,59 +498,9 @@ String? _readPermanentAddress(Map<String, dynamic> json) {
   final addressMap = _readAddressMap(json);
   return _readStringFirst(json, const [
         'permanent_address',
-        'permanentAddress',
-        'permanentaddress',
-        'permanent_adress',
-        'permanentAdress',
-        'permanent_add',
-        'permanentAdd',
-        'permanent_addr',
-        'permanentAddr',
-        'permant_address',
-        'permantAddress',
-        'permantaddress',
-        'permant_adress',
-        'permantAdress',
-        'permant_add',
-        'permantAdd',
-        'permant_addr',
-        'permantAddr',
-        'permant',
-        'permanent',
-        'address_permanent',
-        'addressPermanent',
-        'permanant_address',
-        'permanantAddress',
-        'permenant_address',
-        'permenantAddress',
       ]) ??
       _readStringFirst(addressMap, const [
         'permanent_address',
-        'permanentAddress',
-        'permanentaddress',
-        'permanent_adress',
-        'permanentAdress',
-        'permanent_add',
-        'permanentAdd',
-        'permanent_addr',
-        'permanentAddr',
-        'permant_address',
-        'permantAddress',
-        'permantaddress',
-        'permant_adress',
-        'permantAdress',
-        'permant_add',
-        'permantAdd',
-        'permant_addr',
-        'permantAddr',
-        'permant',
-        'permanent',
-        'address_permanent',
-        'addressPermanent',
-        'permanant_address',
-        'permanantAddress',
-        'permenant_address',
-        'permenantAddress',
       ]) ??
       _readJoinedAddressParts(json) ??
       _readJoinedAddressParts(addressMap) ??
@@ -582,6 +516,9 @@ Map<String, dynamic> _readCandidateProfilePayload(Map<String, dynamic> json) {
     'applicant_profile',
     'applicantProfile',
     'applicant',
+    'application',
+    'latest_application',
+    'latestApplication',
     'profile',
     'candidate_profile',
     'candidateProfile',
@@ -621,6 +558,24 @@ Map<String, dynamic> _readCandidateProfilePayload(Map<String, dynamic> json) {
   final currentAddress = _readCurrentAddress(merged) ?? _readCurrentAddress(json);
   if (currentAddress != null && currentAddress.isNotEmpty) {
     merged['current_address'] = currentAddress;
+  }
+
+  final preferredBranches = _readPreferredBranches(merged);
+  if (preferredBranches.isEmpty) {
+    final fallbackBranches = _readPreferredBranches(json);
+    if (fallbackBranches.isNotEmpty) {
+      merged['preferred_branches'] = fallbackBranches
+          .map(
+            (branch) => {
+              'id': branch.id,
+              'code': branch.code,
+              'name': branch.name,
+              'district': branch.district,
+              'state': branch.state,
+            },
+          )
+          .toList();
+    }
   }
 
   final sourceReferral =
@@ -1144,6 +1099,7 @@ class CandidateProfile {
     required this.documents,
     required this.preferredBranches,
     required this.appliedAt,
+    this.applicationCount = 0,
     this.sourceReferral,
   });
 
@@ -1177,6 +1133,7 @@ class CandidateProfile {
   final List<CandidateDocument> documents;
   final List<PreferredBranch> preferredBranches;
   final String? appliedAt;
+  final int applicationCount;
   final String? sourceReferral;
 
   factory CandidateProfile.fromJson(Map<String, dynamic> json) {
@@ -1286,6 +1243,13 @@ class CandidateProfile {
       appliedAt:
           _readFirst(json, const ['applied_at', 'created_at', 'createdAt'])
               ?.toString(),
+      applicationCount: _readInt(
+        _readFirst(json, const [
+          'application_count',
+          'applications_count',
+          'applications',
+        ]),
+      ),
       sourceReferral: _readSourceReferral(json),
     );
   }
@@ -1322,6 +1286,7 @@ class CandidateProfile {
       documents: const [],
       preferredBranches: const [],
       appliedAt: candidate.appliedAt,
+      applicationCount: candidate.applicationCount,
       sourceReferral: candidate.sourceReferral,
     );
   }
@@ -2951,6 +2916,9 @@ class ApiClient {
       documents: profile.documents,
       preferredBranches: profile.preferredBranches,
       appliedAt: fallbackString(profile.appliedAt, applicant.appliedAt),
+      applicationCount: profile.applicationCount > 0
+          ? profile.applicationCount
+          : applicant.applicationCount,
       sourceReferral: fallbackString(
         profile.sourceReferral,
         applicant.sourceReferral,

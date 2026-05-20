@@ -1834,6 +1834,12 @@ class _CandidatePreviewShell extends StatelessWidget {
     return '$day ${months[parsed.month - 1]} ${parsed.year}';
   }
 
+  int get _recordApplicationCount {
+    return profile.applicationCount > 0
+        ? profile.applicationCount
+        : applicationCount;
+  }
+
   IconData _documentIcon(String fileName) {
     final lower = fileName.toLowerCase();
     if (lower.endsWith('.pdf')) {
@@ -2116,7 +2122,7 @@ class _CandidatePreviewShell extends StatelessWidget {
                           ),
                           _BadgeInfoRow(
                             label: 'Applications',
-                            value: '$applicationCount',
+                            value: '$_recordApplicationCount',
                             highlightColor:
                                 _AllCandidatesScreenState._accent,
                             isLast: true,
